@@ -1,0 +1,768 @@
+openapi: 3.1.0
+info:
+  title: İkiteknik Eğitim Operasyon Platformu API
+  version: 1.2.0
+paths:
+  /api/admin/authorization/catalog:
+    get:
+      operationId: getAuthorizationCatalog
+      security: [{bearerAuth: []}]
+      responses:
+        '200':
+          description: Available authorities and role presets
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthorizationCatalog'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /api/admin/users:
+    get:
+      operationId: listManagedUsers
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/Search'}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: Users ordered by email
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ManagedUserPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /api/admin/users/{userId}/authorities:
+    put:
+      operationId: replaceUserAuthorities
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ReplaceAuthoritiesRequest'}
+      responses:
+        '200':
+          description: Updated user authorities
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ManagedUser'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/courses:
+    get:
+      operationId: listCourses
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/Search'}
+        - name: status
+          in: query
+          schema: {$ref: '#/components/schemas/CourseStatus'}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: Paginated courses ordered by name and id
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CoursePage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      operationId: createCourse
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateCourseRequest'}
+      responses:
+        '201':
+          description: Course created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Course'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/courses/{courseId}:
+    put:
+      operationId: updateCourse
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: courseId, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateCourseRequest'}
+      responses:
+        '200':
+          description: Course updated
+          content: {application/json: {schema: {$ref: '#/components/schemas/Course'}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      operationId: deleteCourse
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: courseId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '204': {description: Course deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/classes:
+    get:
+      operationId: listClasses
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/Search'}
+        - name: status
+          in: query
+          schema: {$ref: '#/components/schemas/ClassStatus'}
+        - name: courseId
+          in: query
+          schema: {type: string, format: uuid}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: Paginated classes ordered by name and id
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ClassPage'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      operationId: createClass
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateClassRequest'}
+      responses:
+        '201':
+          description: Class created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CourseClass'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/classes/{classId}:
+    get:
+      operationId: getClassDetail
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: classId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200':
+          description: Class details and enrolled students
+          content: {application/json: {schema: {$ref: '#/components/schemas/ClassDetail'}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      operationId: updateClass
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: classId, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/UpdateClassRequest'}}}
+      responses:
+        '200':
+          description: Class updated
+          content: {application/json: {schema: {$ref: '#/components/schemas/CourseClass'}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      operationId: deleteClass
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: classId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '204': {description: Class deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/classes/{classId}/enrollments:
+    post:
+      operationId: createClassEnrollment
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: classId, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateClassEnrollmentRequest'}
+      responses:
+        '201':
+          description: Student enrolled in the class
+          content: {application/json: {schema: {$ref: '#/components/schemas/EnrolledStudent'}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/classes/{classId}/enrollments/{enrollmentId}:
+    put:
+      operationId: updateClassEnrollment
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: classId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: enrollmentId, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/UpdateClassEnrollmentRequest'}}}
+      responses:
+        '200': {description: Class enrollment updated, content: {application/json: {schema: {$ref: '#/components/schemas/EnrolledStudent'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      operationId: deleteClassEnrollment
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: classId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: enrollmentId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '204': {description: Class enrollment deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/classes/{classId}/enrollments/{enrollmentId}/payments/{paymentId}/receive:
+    post:
+      operationId: receiveEnrollmentPayment
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: classId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: enrollmentId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: paymentId, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ReceiveEnrollmentPaymentRequest'}}}
+      responses:
+        '200': {description: Payment marked as received, content: {application/json: {schema: {$ref: '#/components/schemas/EnrolledStudent'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/students:
+    get:
+      operationId: listStudents
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/Search'}
+        - name: status
+          in: query
+          schema: {$ref: '#/components/schemas/StudentStatus'}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200': {description: Paginated masked student records, content: {application/json: {schema: {$ref: '#/components/schemas/StudentPage'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      operationId: createStudent
+      security: [{bearerAuth: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateStudentRequest'}}}}
+      responses:
+        '201': {description: Student created, content: {application/json: {schema: {$ref: '#/components/schemas/Student'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/students/{studentId}:
+    get:
+      operationId: getStudent
+      security: [{bearerAuth: []}]
+      parameters: [{name: studentId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses:
+        '200': {description: Masked student detail, content: {application/json: {schema: {$ref: '#/components/schemas/Student'}}}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      operationId: updateStudent
+      security: [{bearerAuth: []}]
+      parameters: [{name: studentId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateStudentRequest'}}}}
+      responses:
+        '200': {description: Student updated, content: {application/json: {schema: {$ref: '#/components/schemas/Student'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      operationId: deleteStudent
+      security: [{bearerAuth: []}]
+      parameters: [{name: studentId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses:
+        '204': {description: Student soft-deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/students/{studentId}/phone/reveal:
+    post:
+      operationId: revealStudentPhone
+      description: Reveals a phone only to separately authorized users and writes a security audit event.
+      security: [{bearerAuth: []}]
+      parameters: [{name: studentId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses:
+        '200':
+          description: Plaintext phone; response must not be cached
+          headers:
+            Cache-Control: {schema: {type: string, const: no-store}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/PhoneRevealResponse'}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/auth/csrf:
+    get:
+      operationId: getCsrfToken
+      responses:
+        '200':
+          description: CSRF token and XSRF-TOKEN cookie
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CsrfResponse'}
+  /api/auth/login:
+    post:
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoginRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/TokenResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /api/auth/refresh:
+    post:
+      operationId: refreshAccessToken
+      parameters:
+        - {$ref: '#/components/parameters/CsrfHeader'}
+      responses:
+        '200': {$ref: '#/components/responses/TokenResponse'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {description: CSRF validation failed}
+  /api/auth/logout:
+    post:
+      operationId: logout
+      parameters:
+        - {$ref: '#/components/parameters/CsrfHeader'}
+      responses:
+        '204': {description: Session family revoked and refresh cookie cleared}
+        '403': {description: CSRF validation failed}
+  /api/auth/me:
+    get:
+      operationId: currentUser
+      security: [{bearerAuth: []}]
+      responses:
+        '200':
+          description: Current server-authoritative user
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserResponse'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Search:
+      name: search
+      in: query
+      schema: {type: string, maxLength: 100, default: ''}
+    Page:
+      name: page
+      in: query
+      schema: {type: integer, minimum: 0, default: 0}
+    Size:
+      name: size
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+    CsrfHeader:
+      name: X-XSRF-TOKEN
+      in: header
+      required: true
+      schema: {type: string}
+  responses:
+    TokenResponse:
+      description: Access token; opaque refresh token is set only as an HttpOnly cookie
+      headers:
+        Set-Cookie:
+          schema: {type: string}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/AccessTokenResponse'}
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ApiError'}
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ApiError'}
+    Forbidden:
+      description: Authenticated user lacks the required authority
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ApiError'}
+    NotFound:
+      description: Referenced resource was not found
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ApiError'}
+    Conflict:
+      description: Unique code or resource state conflict
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ApiError'}
+  schemas:
+    AuthorizationCatalog:
+      type: object
+      required: [authorities, roles]
+      properties:
+        authorities: {type: array, items: {type: string}, uniqueItems: true}
+        roles:
+          type: object
+          additionalProperties:
+            type: array
+            items: {type: string}
+            uniqueItems: true
+    ReplaceAuthoritiesRequest:
+      type: object
+      additionalProperties: false
+      required: [authorities]
+      properties:
+        authorities:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items: {type: string}
+    ManagedUser:
+      type: object
+      required: [id, email, enabled, authorities]
+      properties:
+        id: {type: string, format: uuid}
+        email: {type: string, format: email}
+        enabled: {type: boolean}
+        authorities: {type: array, items: {type: string}, uniqueItems: true}
+    ManagedUserPage:
+      allOf:
+        - {$ref: '#/components/schemas/PageMetadata'}
+        - type: object
+          required: [content]
+          properties:
+            content: {type: array, items: {$ref: '#/components/schemas/ManagedUser'}}
+    CourseStatus:
+      type: string
+      enum: [ACTIVE, DRAFT, ARCHIVED]
+    ClassStatus:
+      type: string
+      enum: [ENROLLMENT_OPEN, PLANNED, IN_PROGRESS, COMPLETED]
+    CreateCourseRequest:
+      type: object
+      additionalProperties: false
+      required: [name, category, durationHours, listPrice, status]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 160}
+        category: {type: string, minLength: 1, maxLength: 80}
+        durationHours: {type: integer, minimum: 1, maximum: 500}
+        listPrice: {type: number, minimum: 0, multipleOf: 0.01}
+        status: {$ref: '#/components/schemas/CourseStatus'}
+    UpdateCourseRequest:
+      allOf:
+        - {$ref: '#/components/schemas/CreateCourseRequest'}
+        - type: object
+          required: [version]
+          properties: {version: {type: integer, format: int64, minimum: 0}}
+    CreateClassRequest:
+      type: object
+      additionalProperties: false
+      required: [name, courseId, instructorName, startDate, endDate, capacity, status]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 160}
+        courseId: {type: string, format: uuid}
+        instructorName: {type: string, minLength: 1, maxLength: 120}
+        startDate: {type: string, format: date}
+        endDate: {type: string, format: date, description: Must be on or after startDate}
+        capacity: {type: integer, minimum: 1, maximum: 50}
+        status: {$ref: '#/components/schemas/ClassStatus'}
+    UpdateClassRequest:
+      allOf:
+        - {$ref: '#/components/schemas/CreateClassRequest'}
+        - type: object
+          required: [version]
+          properties: {version: {type: integer, format: int64, minimum: 0}}
+    Course:
+      type: object
+      required: [id, code, name, category, durationHours, listPrice, status, version]
+      properties:
+        id: {type: string, format: uuid}
+        code: {type: string}
+        name: {type: string}
+        category: {type: string}
+        durationHours: {type: integer}
+        listPrice: {type: number}
+        status: {$ref: '#/components/schemas/CourseStatus'}
+        version: {type: integer, format: int64}
+    CourseClass:
+      type: object
+      required: [id, code, name, courseId, courseCode, courseName, instructorName, startDate, endDate, capacity, enrolledCount, status, version]
+      properties:
+        id: {type: string, format: uuid}
+        code: {type: string}
+        name: {type: string}
+        courseId: {type: string, format: uuid}
+        courseCode: {type: string}
+        courseName: {type: string}
+        instructorName: {type: string}
+        startDate: {type: string, format: date}
+        endDate: {type: string, format: date}
+        capacity: {type: integer}
+        enrolledCount: {type: integer}
+        status: {$ref: '#/components/schemas/ClassStatus'}
+        version: {type: integer, format: int64}
+    EnrolledStudent:
+      type: object
+      required: [id, enrollmentId, fullName, email, enrollmentStatus, registrationFee, paymentPlan, paymentStatus, payments, version]
+      properties:
+        id: {type: string, format: uuid}
+        enrollmentId: {type: string, format: uuid}
+        fullName: {type: string}
+        email: {type: string, format: email}
+        phoneMasked: {type: string}
+        enrollmentStatus: {type: string, enum: [ACTIVE, COMPLETED, CANCELLED]}
+        registrationFee: {type: number, minimum: 0, multipleOf: 0.01}
+        paymentPlan: {$ref: '#/components/schemas/PaymentPlanType'}
+        installmentCount: {type: [integer, 'null'], minimum: 2, maximum: 24}
+        firstPaymentDate: {type: [string, 'null'], format: date}
+        paymentStatus: {$ref: '#/components/schemas/PaymentStatus'}
+        expectedPaymentDate: {type: [string, 'null'], format: date}
+        note: {type: [string, 'null'], maxLength: 1000}
+        payments:
+          type: array
+          maxItems: 24
+          items: {$ref: '#/components/schemas/EnrollmentPayment'}
+        version: {type: integer, format: int64}
+    EnrollmentPayment:
+      type: object
+      required: [id, installmentNumber, installmentTotal, amount, status, version]
+      properties:
+        id: {type: string, format: uuid}
+        installmentNumber: {type: integer, minimum: 1, maximum: 24}
+        installmentTotal: {type: integer, minimum: 1, maximum: 24}
+        amount: {type: number, minimum: 0, multipleOf: 0.01}
+        dueDate: {type: [string, 'null'], format: date}
+        status: {$ref: '#/components/schemas/PaymentStatus'}
+        paidAt: {type: [string, 'null'], format: date}
+        version: {type: integer, format: int64}
+    ReceiveEnrollmentPaymentRequest:
+      type: object
+      required: [version]
+      properties:
+        version: {type: integer, format: int64, minimum: 0}
+    PaymentPlanType:
+      type: string
+      enum: [CASH, INSTALLMENT]
+    PaymentStatus:
+      type: string
+      enum: [PENDING, COMPLETED]
+    CreateClassEnrollmentRequest:
+      type: object
+      additionalProperties: false
+      required: [studentId, registrationFee, paymentPlan, paymentStatus]
+      properties:
+        studentId: {type: string, format: uuid}
+        registrationFee: {type: number, minimum: 0, maximum: 9999999999.99, multipleOf: 0.01}
+        paymentPlan: {$ref: '#/components/schemas/PaymentPlanType'}
+        installmentCount:
+          type: [integer, 'null']
+          minimum: 2
+          maximum: 24
+          description: Required only when paymentPlan is INSTALLMENT; must be absent for CASH.
+        firstPaymentDate:
+          type: [string, 'null']
+          format: date
+          description: Required only when paymentPlan is INSTALLMENT; must be absent for CASH.
+        paymentStatus: {$ref: '#/components/schemas/PaymentStatus'}
+        expectedPaymentDate:
+          type: [string, 'null']
+          format: date
+          description: Required only for pending cash payments; must be absent otherwise.
+        note: {type: [string, 'null'], maxLength: 1000}
+    UpdateClassEnrollmentRequest:
+      type: object
+      additionalProperties: false
+      required: [registrationFee, paymentPlan, paymentStatus, version]
+      properties:
+        registrationFee: {type: number, minimum: 0, maximum: 9999999999.99, multipleOf: 0.01}
+        paymentPlan: {$ref: '#/components/schemas/PaymentPlanType'}
+        installmentCount: {type: [integer, 'null'], minimum: 2, maximum: 24}
+        firstPaymentDate: {type: [string, 'null'], format: date}
+        paymentStatus: {$ref: '#/components/schemas/PaymentStatus'}
+        expectedPaymentDate: {type: [string, 'null'], format: date}
+        note: {type: [string, 'null'], maxLength: 1000}
+        version: {type: integer, format: int64, minimum: 0}
+    ClassDetail:
+      type: object
+      required: [classInfo, students]
+      properties:
+        classInfo: {$ref: '#/components/schemas/CourseClass'}
+        students: {type: array, items: {$ref: '#/components/schemas/EnrolledStudent'}, maxItems: 50}
+    PageMetadata:
+      type: object
+      required: [page, size, totalElements, totalPages, first, last]
+      properties:
+        page: {type: integer}
+        size: {type: integer}
+        totalElements: {type: integer, format: int64}
+        totalPages: {type: integer}
+        first: {type: boolean}
+        last: {type: boolean}
+    CoursePage:
+      allOf:
+        - {$ref: '#/components/schemas/PageMetadata'}
+        - type: object
+          required: [content]
+          properties:
+            content: {type: array, items: {$ref: '#/components/schemas/Course'}}
+    ClassPage:
+      allOf:
+        - {$ref: '#/components/schemas/PageMetadata'}
+        - type: object
+          required: [content]
+          properties:
+            content: {type: array, items: {$ref: '#/components/schemas/CourseClass'}}
+    StudentStatus:
+      type: string
+      enum: [ACTIVE, PROSPECTIVE, INACTIVE]
+    CreateStudentRequest:
+      type: object
+      additionalProperties: false
+      required: [fullName, email, phone, status, registrationDate, source, kvkkConsent]
+      properties:
+        fullName: {type: string, minLength: 1, maxLength: 160}
+        email: {type: string, format: email, maxLength: 254}
+        phone: {type: string, minLength: 1, maxLength: 30}
+        status: {$ref: '#/components/schemas/StudentStatus'}
+        activeCourse: {type: [string, 'null'], maxLength: 160}
+        registrationDate: {type: string, format: date}
+        source: {type: string, minLength: 1, maxLength: 100}
+        kvkkConsent: {type: boolean}
+        inactiveReason: {type: [string, 'null'], maxLength: 500}
+        expectedStartDate: {type: [string, 'null'], format: date}
+    UpdateStudentRequest:
+      allOf:
+        - {$ref: '#/components/schemas/CreateStudentRequest'}
+        - type: object
+          required: [version]
+          properties:
+            phone: {type: [string, 'null'], maxLength: 30, description: Omit or leave blank to preserve the current encrypted value}
+            version: {type: integer, format: int64, minimum: 0}
+    Student:
+      type: object
+      required: [id, fullName, email, phoneAvailable, phoneMasked, status, registrationDate, source, kvkkConsent, version]
+      properties:
+        id: {type: string, format: uuid}
+        fullName: {type: string}
+        email: {type: string, format: email}
+        phoneAvailable: {type: boolean}
+        phoneMasked: {type: string}
+        status: {$ref: '#/components/schemas/StudentStatus'}
+        activeCourse: {type: [string, 'null']}
+        registrationDate: {type: string, format: date}
+        source: {type: string}
+        kvkkConsent: {type: boolean}
+        inactiveReason: {type: [string, 'null']}
+        expectedStartDate: {type: [string, 'null'], format: date}
+        version: {type: integer, format: int64}
+    StudentPage:
+      allOf:
+        - {$ref: '#/components/schemas/PageMetadata'}
+        - type: object
+          required: [content]
+          properties:
+            content: {type: array, items: {$ref: '#/components/schemas/Student'}}
+    PhoneRevealResponse:
+      type: object
+      additionalProperties: false
+      required: [phone]
+      properties: {phone: {type: string}}
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, format: email, maxLength: 254}
+        password: {type: string, maxLength: 128}
+        rememberMe:
+          type: boolean
+          default: false
+          description: Persists the refresh cookie across browser restarts when true
+    AccessTokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresAt, user]
+      properties:
+        accessToken: {type: string}
+        tokenType: {type: string, const: Bearer}
+        expiresAt: {type: string, format: date-time}
+        user: {$ref: '#/components/schemas/UserResponse'}
+    UserResponse:
+      type: object
+      required: [id, email, authorities]
+      properties:
+        id: {type: string, format: uuid}
+        email: {type: string, format: email}
+        authorities:
+          type: array
+          items: {type: string}
+          uniqueItems: true
+    CsrfResponse:
+      type: object
+      required: [token]
+      properties:
+        token: {type: string}
+    ApiError:
+      type: object
+      required: [code, message, timestamp]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        timestamp: {type: string, format: date-time}

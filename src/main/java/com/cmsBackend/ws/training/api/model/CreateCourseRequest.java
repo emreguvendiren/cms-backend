@@ -1,0 +1,18 @@
+package com.cmsBackend.ws.training.api.model;
+
+import com.cmsBackend.ws.training.domain.CourseStatus;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
+
+public record CreateCourseRequest(
+        @NotBlank @Size(max = 160) String name,
+        @NotBlank @Size(max = 80) String category,
+        @Min(1) @Max(500) int durationHours,
+        @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal listPrice,
+        @NotNull CourseStatus status) {}
