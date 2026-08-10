@@ -13,8 +13,7 @@ public interface CourseRepository extends JpaRepository<CourseJpaEntity, UUID> {
             select c from CourseJpaEntity c
             where (:status is null or c.status = :status)
               and (:search = '' or lower(c.name) like lower(concat('%', :search, '%'))
-                   or lower(c.code) like lower(concat('%', :search, '%'))
-                   or lower(c.category) like lower(concat('%', :search, '%')))
+                   or lower(c.code) like lower(concat('%', :search, '%')))
             """)
     Page<CourseJpaEntity> search(
             @Param("search") String search, @Param("status") CourseStatus status, Pageable pageable);

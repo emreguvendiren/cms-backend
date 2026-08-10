@@ -110,6 +110,9 @@
 
 \- Validate request models.
 
+\- Monetary request fields must remain numeric JSON values. Do not accept
+  locale-formatted strings with thousands separators at the API boundary.
+
 \- Use a consistent error model.
 
 \- Handle exceptions centrally.

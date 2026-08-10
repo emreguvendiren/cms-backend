@@ -22,16 +22,22 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
     private final UUID actor = UUID.randomUUID();
     @BeforeEach void clean() { students.deleteAll(); }
 
-    @Test void storesPhoneEncryptedAndReturnsOnlyMaskedData() throws Exception {
+    @Test void storesSensitiveFieldsEncryptedAndReturnsOnlyMaskedData() throws Exception {
         String response = create("student:create").andExpect(status().isCreated())
-                .andExpect(jsonPath("$.phoneMasked").value("••• ••• •• ••"))
-                .andExpect(jsonPath("$.phone").doesNotExist()).andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.phoneMasked").value("*** *** ** **"))
+                .andExpect(jsonPath("$.identityNumberMasked").value("***********"))
+                .andExpect(jsonPath("$.phone").doesNotExist())
+                .andExpect(jsonPath("$.identityNumber").doesNotExist()).andReturn().getResponse().getContentAsString();
         UUID id = UUID.fromString(response.replaceAll(".*\\\"id\\\":\\\"([^\\\"]+).*", "$1"));
         var stored = students.findById(id).orElseThrow();
         assertThat(stored.getPhoneCiphertext()).doesNotContain("5551234567");
         assertThat(stored.getPhoneIv()).isNotBlank(); assertThat(stored.getPhoneLookupHash()).hasSize(64);
+        assertThat(stored.getIdentityNumberCiphertext()).doesNotContain("10000000146");
+        assertThat(stored.getIdentityNumberIv()).isNotBlank();
+        assertThat(stored.getIdentityNumberLookupHash()).hasSize(64);
         mvc.perform(get("/api/students").with(auth("student:read"))).andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("+905551234567"))));
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("+905551234567"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("10000000146"))));
     }
 
     @Test void revealRequiresSeparateAuthorityAndDisablesCaching() throws Exception {
@@ -43,7 +49,7 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.phone").value("+905551234567"));
     }
 
-    @Test void enforcesInactiveReasonAndDuplicatePhone() throws Exception {
+    @Test void enforcesInactiveReasonAndDuplicateSensitiveData() throws Exception {
         create("student:create").andExpect(status().isCreated());
         create("student:create").andExpect(status().isConflict());
         mvc.perform(post("/api/students").with(auth("student:create")).contentType(MediaType.APPLICATION_JSON)
@@ -58,6 +64,9 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
     }
     private String body() { return """
       {"fullName":"Deniz Arslan","email":"deniz@example.com","phone":"0555 123 45 67","status":"PROSPECTIVE",
-       "registrationDate":"2026-08-06","source":"Web sitesi","kvkkConsent":true,"expectedStartDate":"2026-09-01"}
+       "identityNumber":"10000000146","birthPlace":"Izmir","birthDate":"2001-05-20",
+       "fatherName":"Mehmet","motherName":"Ayse","gender":"MALE","registrationDate":"2026-08-06",
+       "source":"Web sitesi","kvkkConsent":true,"expectedStartDate":"2026-09-01",
+       "educationLevel":"Lise","schoolName":"Teknik Lise","profession":"Teknisyen","address":"Konak, Izmir"}
       """; }
 }

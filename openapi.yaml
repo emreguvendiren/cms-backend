@@ -500,10 +500,9 @@ components:
     CreateCourseRequest:
       type: object
       additionalProperties: false
-      required: [name, category, durationHours, listPrice, status]
+      required: [name, durationHours, listPrice, status]
       properties:
         name: {type: string, minLength: 1, maxLength: 160}
-        category: {type: string, minLength: 1, maxLength: 80}
         durationHours: {type: integer, minimum: 1, maximum: 500}
         listPrice: {type: number, minimum: 0, multipleOf: 0.01}
         status: {$ref: '#/components/schemas/CourseStatus'}
@@ -533,12 +532,11 @@ components:
           properties: {version: {type: integer, format: int64, minimum: 0}}
     Course:
       type: object
-      required: [id, code, name, category, durationHours, listPrice, status, version]
+      required: [id, code, name, durationHours, listPrice, status, version]
       properties:
         id: {type: string, format: uuid}
         code: {type: string}
         name: {type: string}
-        category: {type: string}
         durationHours: {type: integer}
         listPrice: {type: number}
         status: {$ref: '#/components/schemas/CourseStatus'}
@@ -674,14 +672,23 @@ components:
     StudentStatus:
       type: string
       enum: [ACTIVE, PROSPECTIVE, INACTIVE]
+    Gender:
+      type: string
+      enum: [FEMALE, MALE, NOT_SPECIFIED]
     CreateStudentRequest:
       type: object
       additionalProperties: false
-      required: [fullName, email, phone, status, registrationDate, source, kvkkConsent]
+      required: [fullName, email, phone, identityNumber, gender, status, registrationDate, source, kvkkConsent]
       properties:
         fullName: {type: string, minLength: 1, maxLength: 160}
         email: {type: string, format: email, maxLength: 254}
         phone: {type: string, minLength: 1, maxLength: 30}
+        identityNumber: {type: string, minLength: 11, maxLength: 11, description: Turkish national identity number. Stored encrypted and never returned as plaintext.}
+        birthPlace: {type: [string, 'null'], maxLength: 100}
+        birthDate: {type: [string, 'null'], format: date}
+        fatherName: {type: [string, 'null'], maxLength: 120}
+        motherName: {type: [string, 'null'], maxLength: 120}
+        gender: {$ref: '#/components/schemas/Gender'}
         status: {$ref: '#/components/schemas/StudentStatus'}
         activeCourse: {type: [string, 'null'], maxLength: 160}
         registrationDate: {type: string, format: date}
@@ -689,6 +696,10 @@ components:
         kvkkConsent: {type: boolean}
         inactiveReason: {type: [string, 'null'], maxLength: 500}
         expectedStartDate: {type: [string, 'null'], format: date}
+        educationLevel: {type: [string, 'null'], maxLength: 100}
+        schoolName: {type: [string, 'null'], maxLength: 160}
+        profession: {type: [string, 'null'], maxLength: 120}
+        address: {type: [string, 'null'], maxLength: 500}
     UpdateStudentRequest:
       allOf:
         - {$ref: '#/components/schemas/CreateStudentRequest'}
@@ -696,16 +707,24 @@ components:
           required: [version]
           properties:
             phone: {type: [string, 'null'], maxLength: 30, description: Omit or leave blank to preserve the current encrypted value}
+            identityNumber: {type: [string, 'null'], maxLength: 11, description: Omit or leave blank to preserve the current encrypted value}
             version: {type: integer, format: int64, minimum: 0}
     Student:
       type: object
-      required: [id, fullName, email, phoneAvailable, phoneMasked, status, registrationDate, source, kvkkConsent, version]
+      required: [id, fullName, email, phoneAvailable, phoneMasked, identityNumberAvailable, identityNumberMasked, gender, status, registrationDate, source, kvkkConsent, version]
       properties:
         id: {type: string, format: uuid}
         fullName: {type: string}
         email: {type: string, format: email}
         phoneAvailable: {type: boolean}
         phoneMasked: {type: string}
+        identityNumberAvailable: {type: boolean}
+        identityNumberMasked: {type: string}
+        birthPlace: {type: [string, 'null']}
+        birthDate: {type: [string, 'null'], format: date}
+        fatherName: {type: [string, 'null']}
+        motherName: {type: [string, 'null']}
+        gender: {$ref: '#/components/schemas/Gender'}
         status: {$ref: '#/components/schemas/StudentStatus'}
         activeCourse: {type: [string, 'null']}
         registrationDate: {type: string, format: date}
@@ -713,6 +732,10 @@ components:
         kvkkConsent: {type: boolean}
         inactiveReason: {type: [string, 'null']}
         expectedStartDate: {type: [string, 'null'], format: date}
+        educationLevel: {type: [string, 'null']}
+        schoolName: {type: [string, 'null']}
+        profession: {type: [string, 'null']}
+        address: {type: [string, 'null']}
         version: {type: integer, format: int64}
     StudentPage:
       allOf:

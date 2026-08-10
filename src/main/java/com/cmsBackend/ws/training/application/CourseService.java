@@ -38,8 +38,7 @@ public class CourseService {
         UUID id = UUID.randomUUID();
         String code = "KRS-" + id.toString().substring(0, 8).toUpperCase(java.util.Locale.ROOT);
         var course = new CourseJpaEntity(
-                id, code, request.name().trim(), request.category().trim(), request.durationHours(),
-                request.listPrice(), request.status());
+                id, code, request.name().trim(), request.durationHours(), request.listPrice(), request.status());
         return CourseResponse.from(courses.save(course));
     }
 
@@ -48,7 +47,7 @@ public class CourseService {
     public CourseResponse update(UUID id, UpdateCourseRequest request) {
         var course = courses.findById(id).orElseThrow(TrainingNotFoundException::new);
         if (course.getVersion() != request.version()) throw new TrainingConflictException();
-        course.update(request.name().trim(), request.category().trim(), request.durationHours(), request.listPrice(), request.status());
+        course.update(request.name().trim(), request.durationHours(), request.listPrice(), request.status());
         return CourseResponse.from(courses.saveAndFlush(course));
     }
 

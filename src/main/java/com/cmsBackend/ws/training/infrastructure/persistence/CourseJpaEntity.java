@@ -26,9 +26,6 @@ public class CourseJpaEntity {
     @Column(nullable = false, length = 160)
     private String name;
 
-    @Column(nullable = false, length = 80)
-    private String category;
-
     @Column(nullable = false)
     private int durationHours;
 
@@ -45,12 +42,10 @@ public class CourseJpaEntity {
     protected CourseJpaEntity() {}
 
     public CourseJpaEntity(
-            UUID id, String code, String name, String category, int durationHours, BigDecimal listPrice,
-            CourseStatus status) {
+            UUID id, String code, String name, int durationHours, BigDecimal listPrice, CourseStatus status) {
         this.id = id;
         this.code = code;
         this.name = name;
-        this.category = category;
         this.durationHours = durationHours;
         this.listPrice = listPrice;
         this.status = status;
@@ -59,15 +54,13 @@ public class CourseJpaEntity {
     public UUID getId() { return id; }
     public String getCode() { return code; }
     public String getName() { return name; }
-    public String getCategory() { return category; }
     public int getDurationHours() { return durationHours; }
     public BigDecimal getListPrice() { return listPrice; }
     public CourseStatus getStatus() { return status; }
     public long getVersion() { return version; }
 
-    public void update(String name, String category, int durationHours, BigDecimal listPrice, CourseStatus status) {
+    public void update(String name, int durationHours, BigDecimal listPrice, CourseStatus status) {
         this.name = name;
-        this.category = category;
         this.durationHours = durationHours;
         this.listPrice = listPrice;
         this.status = status;

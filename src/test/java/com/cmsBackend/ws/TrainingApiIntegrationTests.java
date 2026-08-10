@@ -57,7 +57,7 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
 
     @Test void updatesCourseAndRejectsStaleVersion() throws Exception {
         var course=activeCourse(); var auth=jwt().authorities(new SimpleGrantedAuthority("course:update"));
-        String body="{\"name\":\"AutoCAD Güncel\",\"category\":\"Teknik Tasarım\",\"durationHours\":56,\"listPrice\":14000,\"status\":\"DRAFT\",\"version\":0}";
+        String body="{\"name\":\"AutoCAD Güncel\",\"durationHours\":56,\"listPrice\":14000,\"status\":\"DRAFT\",\"version\":0}";
         mvc.perform(put("/api/courses/{id}", course.getId()).with(auth).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("AutoCAD Güncel"));
         mvc.perform(put("/api/courses/{id}", course.getId()).with(auth).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isConflict());
@@ -67,7 +67,7 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         var referenced=activeCourse(); newClass(referenced);
         var auth=jwt().authorities(new SimpleGrantedAuthority("course:delete"));
         mvc.perform(delete("/api/courses/{id}", referenced.getId()).with(auth)).andExpect(status().isConflict());
-        var removable=courses.save(new CourseJpaEntity(UUID.randomUUID(), "KRS-002", "CNC", "Üretim", 20, BigDecimal.TEN, CourseStatus.DRAFT));
+        var removable=courses.save(new CourseJpaEntity(UUID.randomUUID(), "KRS-002", "CNC", 20, BigDecimal.TEN, CourseStatus.DRAFT));
         mvc.perform(delete("/api/courses/{id}", removable.getId()).with(auth)).andExpect(status().isNoContent());
     }
 
@@ -357,7 +357,7 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         mvc.perform(post("/api/classes").with(auth).contentType(MediaType.APPLICATION_JSON).content(classBody(UUID.randomUUID()))).andExpect(status().isNotFound());
     }
 
-    private CourseJpaEntity activeCourse(){return courses.save(new CourseJpaEntity(UUID.randomUUID(), "KRS-001", "AutoCAD 2D Teknik Çizim", "Teknik Tasarım", 48, new BigDecimal("12500"), CourseStatus.ACTIVE));}
+    private CourseJpaEntity activeCourse(){return courses.save(new CourseJpaEntity(UUID.randomUUID(), "KRS-001", "AutoCAD 2D Teknik Çizim", 48, new BigDecimal("12500"), CourseStatus.ACTIVE));}
     private CourseClassJpaEntity newClass(CourseJpaEntity course){return classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-TEST", "AutoCAD Akşam", course, "Murat Aydın", LocalDate.parse("2026-08-10"), LocalDate.parse("2026-09-02"), 14, ClassStatus.PLANNED));}
     private StudentJpaEntity prospectiveStudent(String email) {
         var student = new StudentJpaEntity(UUID.randomUUID(), "Elif Yılmaz", email, "ignored");
@@ -368,6 +368,6 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
     private String cashEnrollmentBody(UUID studentId) {
         return "{\"studentId\":\"%s\",\"registrationFee\":1000,\"paymentPlan\":\"CASH\",\"paymentStatus\":\"PENDING\",\"expectedPaymentDate\":\"2026-08-20\"}".formatted(studentId);
     }
-    private String courseBody(String status){return "{\"name\":\"AutoCAD 2D Teknik Çizim\",\"category\":\"Teknik Tasarım\",\"durationHours\":48,\"listPrice\":12500,\"status\":\"%s\"}".formatted(status);}
+    private String courseBody(String status){return "{\"name\":\"AutoCAD 2D Teknik Çizim\",\"durationHours\":48,\"listPrice\":12500,\"status\":\"%s\"}".formatted(status);}
     private String classBody(UUID courseId){return "{\"name\":\"AutoCAD Hafta İçi Akşam\",\"courseId\":\"%s\",\"instructorName\":\"Murat Aydın\",\"startDate\":\"2026-08-10\",\"endDate\":\"2026-09-02\",\"capacity\":14,\"status\":\"PLANNED\"}".formatted(courseId);}
 }

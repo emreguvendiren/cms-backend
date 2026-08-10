@@ -19,12 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StudentService {
     private final StudentRepository students;
-    private final StudentPhoneProtector phones;
+    private final StudentSensitiveDataProtector sensitiveData;
     private final SecurityAuditService audit;
     private final Clock clock = Clock.systemUTC();
 
-    public StudentService(StudentRepository students, StudentPhoneProtector phones, SecurityAuditService audit) {
-        this.students = students; this.phones = phones; this.audit = audit;
+    public StudentService(StudentRepository students, StudentSensitiveDataProtector sensitiveData, SecurityAuditService audit) {
+        this.students = students; this.sensitiveData = sensitiveData; this.audit = audit;
     }
 
     @PreAuthorize("hasAuthority('student:read')")
@@ -44,12 +44,19 @@ public class StudentService {
     public StudentResponse create(CreateStudentRequest request, UUID actorId) {
         validate(request.status(), request.inactiveReason(), request.expectedStartDate());
         UUID id = UUID.randomUUID();
-        ProtectedPhone protectedPhone = phones.protect(id, request.phone());
+        ProtectedStudentSensitiveData protectedPhone = protectPhone(id, request.phone());
+        ProtectedStudentSensitiveData protectedIdentityNumber = protectIdentityNumber(id, request.identityNumber());
         if (students.existsByPhoneLookupHash(protectedPhone.lookupHash())) throw new StudentConflictException();
+        if (students.existsByIdentityNumberLookupHash(protectedIdentityNumber.lookupHash())) throw new StudentConflictException();
         var student = new StudentJpaEntity(id, trim(request.fullName()), request.email().trim().toLowerCase(),
                 protectedPhone.ciphertext(), protectedPhone.iv(), protectedPhone.lookupHash(), protectedPhone.keyVersion(),
+                protectedIdentityNumber.ciphertext(), protectedIdentityNumber.iv(), protectedIdentityNumber.lookupHash(),
+                protectedIdentityNumber.keyVersion(),
                 request.status(), nullableTrim(request.activeCourse()), request.registrationDate(), trim(request.source()),
-                request.kvkkConsent(), nullableTrim(request.inactiveReason()), request.expectedStartDate());
+                request.kvkkConsent(), nullableTrim(request.inactiveReason()), request.expectedStartDate(),
+                nullableTrim(request.birthPlace()), request.birthDate(), nullableTrim(request.fatherName()),
+                nullableTrim(request.motherName()), request.gender(), nullableTrim(request.educationLevel()),
+                nullableTrim(request.schoolName()), nullableTrim(request.profession()), nullableTrim(request.address()));
         try {
             StudentResponse response = StudentResponse.from(students.saveAndFlush(student));
             audit.studentChanged("create", actorId, id); return response;
@@ -64,13 +71,25 @@ public class StudentService {
         if (student.getVersion() != request.version()) throw new StudentConflictException();
         student.updateProfile(trim(request.fullName()), request.email().trim().toLowerCase(), request.status(),
                 nullableTrim(request.activeCourse()), request.registrationDate(), trim(request.source()), request.kvkkConsent(),
-                nullableTrim(request.inactiveReason()), request.expectedStartDate());
+                nullableTrim(request.inactiveReason()), request.expectedStartDate(), nullableTrim(request.birthPlace()),
+                request.birthDate(), nullableTrim(request.fatherName()), nullableTrim(request.motherName()),
+                request.gender(), nullableTrim(request.educationLevel()), nullableTrim(request.schoolName()),
+                nullableTrim(request.profession()), nullableTrim(request.address()));
         if (request.phone() != null && !request.phone().isBlank()) {
-            ProtectedPhone protectedPhone = phones.protect(id, request.phone());
+            ProtectedStudentSensitiveData protectedPhone = protectPhone(id, request.phone());
             if (!protectedPhone.lookupHash().equals(student.getPhoneLookupHash())
                     && students.existsByPhoneLookupHash(protectedPhone.lookupHash())) throw new StudentConflictException();
             student.updateProtectedPhone(protectedPhone.ciphertext(), protectedPhone.iv(), protectedPhone.lookupHash(),
                     protectedPhone.keyVersion());
+        }
+        if (request.identityNumber() != null && !request.identityNumber().isBlank()) {
+            ProtectedStudentSensitiveData protectedIdentityNumber = protectIdentityNumber(id, request.identityNumber());
+            if (!protectedIdentityNumber.lookupHash().equals(student.getIdentityNumberLookupHash())
+                    && students.existsByIdentityNumberLookupHash(protectedIdentityNumber.lookupHash())) {
+                throw new StudentConflictException();
+            }
+            student.updateProtectedIdentityNumber(protectedIdentityNumber.ciphertext(), protectedIdentityNumber.iv(),
+                    protectedIdentityNumber.lookupHash(), protectedIdentityNumber.keyVersion());
         }
         try {
             StudentResponse response = StudentResponse.from(students.saveAndFlush(student));
@@ -91,13 +110,21 @@ public class StudentService {
         var student = find(id);
         if (student.getPhoneCiphertext() == null || student.getPhoneIv() == null || student.getPhoneKeyVersion() == null)
             throw new StudentNotFoundException();
-        String phone = phones.reveal(id, new ProtectedPhone(student.getPhoneCiphertext(), student.getPhoneIv(),
+        String phone = sensitiveData.revealPhone(id, new ProtectedStudentSensitiveData(student.getPhoneCiphertext(), student.getPhoneIv(),
                 student.getPhoneLookupHash(), student.getPhoneKeyVersion()));
         audit.studentPhoneRevealed(actorId, id);
         return new PhoneRevealResponse(phone);
     }
 
     private StudentJpaEntity find(UUID id) { return students.findByIdAndDeletedAtIsNull(id).orElseThrow(StudentNotFoundException::new); }
+    private ProtectedStudentSensitiveData protectPhone(UUID id, String phone) {
+        try { return sensitiveData.protectPhone(id, phone); }
+        catch (IllegalArgumentException exception) { throw new StudentValidationException("Telefon numarasi gecersiz."); }
+    }
+    private ProtectedStudentSensitiveData protectIdentityNumber(UUID id, String identityNumber) {
+        try { return sensitiveData.protectIdentityNumber(id, identityNumber); }
+        catch (IllegalArgumentException exception) { throw new StudentValidationException("TC kimlik numarasi gecersiz."); }
+    }
     private void validate(StudentStatus status, String inactiveReason, java.time.LocalDate expectedStartDate) {
         if (status == StudentStatus.INACTIVE && (inactiveReason == null || inactiveReason.isBlank()))
             throw new StudentValidationException("Pasif öğrenci için pasiflik nedeni zorunludur.");

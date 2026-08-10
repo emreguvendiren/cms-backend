@@ -1,10 +1,9 @@
 package com.cmsBackend.ws.student.infrastructure.crypto;
 
-import com.cmsBackend.ws.student.application.ProtectedPhone;
-import com.cmsBackend.ws.student.application.StudentPhoneProtector;
+import com.cmsBackend.ws.student.application.ProtectedStudentSensitiveData;
+import com.cmsBackend.ws.student.application.StudentSensitiveDataProtector;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -16,24 +15,32 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AesGcmStudentPhoneProtector implements StudentPhoneProtector {
+public class AesGcmStudentSensitiveDataProtector implements StudentSensitiveDataProtector {
     private static final int IV_BYTES = 12;
     private static final int TAG_BITS = 128;
     private final StudentDataProtectionProperties properties;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public AesGcmStudentPhoneProtector(StudentDataProtectionProperties properties) { this.properties = properties; }
+    public AesGcmStudentSensitiveDataProtector(StudentDataProtectionProperties properties) { this.properties = properties; }
 
     @Override
-    public ProtectedPhone protect(UUID studentId, String phone) {
-        String normalized = normalize(phone);
+    public ProtectedStudentSensitiveData protectPhone(UUID studentId, String phone) {
+        return protect(studentId, "phone", normalizePhone(phone));
+    }
+
+    @Override
+    public ProtectedStudentSensitiveData protectIdentityNumber(UUID studentId, String identityNumber) {
+        return protect(studentId, "identity-number", normalizeIdentityNumber(identityNumber));
+    }
+
+    private ProtectedStudentSensitiveData protect(UUID studentId, String field, String normalized) {
         byte[] iv = new byte[IV_BYTES]; secureRandom.nextBytes(iv);
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, encryptionKey(), new GCMParameterSpec(TAG_BITS, iv));
-            cipher.updateAAD(aad(studentId));
+            cipher.updateAAD(aad(studentId, field));
             byte[] encrypted = cipher.doFinal(normalized.getBytes(StandardCharsets.UTF_8));
-            return new ProtectedPhone(Base64.getEncoder().encodeToString(encrypted),
+            return new ProtectedStudentSensitiveData(Base64.getEncoder().encodeToString(encrypted),
                     Base64.getEncoder().encodeToString(iv), lookupHash(normalized), properties.getActiveKeyVersion());
         } catch (GeneralSecurityException exception) {
             throw new SensitiveDataProtectionException();
@@ -41,13 +48,13 @@ public class AesGcmStudentPhoneProtector implements StudentPhoneProtector {
     }
 
     @Override
-    public String reveal(UUID studentId, ProtectedPhone value) {
+    public String revealPhone(UUID studentId, ProtectedStudentSensitiveData value) {
         if (value.keyVersion() != properties.getActiveKeyVersion()) throw new SensitiveDataProtectionException();
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, encryptionKey(), new GCMParameterSpec(TAG_BITS,
                     Base64.getDecoder().decode(value.iv())));
-            cipher.updateAAD(aad(studentId));
+            cipher.updateAAD(aad(studentId, "phone"));
             return new String(cipher.doFinal(Base64.getDecoder().decode(value.ciphertext())), StandardCharsets.UTF_8);
         } catch (GeneralSecurityException | IllegalArgumentException exception) {
             throw new SensitiveDataProtectionException();
@@ -64,16 +71,33 @@ public class AesGcmStudentPhoneProtector implements StudentPhoneProtector {
         return HexFormat.of().formatHex(mac.doFinal(normalized.getBytes(StandardCharsets.UTF_8)));
     }
 
-    private byte[] aad(UUID studentId) {
-        return ("student:" + studentId + ":phone:v1").getBytes(StandardCharsets.UTF_8);
+    private byte[] aad(UUID studentId, String field) {
+        return ("student:" + studentId + ":" + field + ":v1").getBytes(StandardCharsets.UTF_8);
     }
 
-    private String normalize(String phone) {
+    private String normalizePhone(String phone) {
         String digits = phone == null ? "" : phone.replaceAll("\\D", "");
         if (digits.startsWith("00")) digits = digits.substring(2);
         if (digits.length() == 10) digits = "90" + digits;
         else if (digits.length() == 11 && digits.startsWith("0")) digits = "90" + digits.substring(1);
         if (!digits.matches("90[1-9][0-9]{9}")) throw new IllegalArgumentException("Invalid Turkish phone number");
         return "+" + digits;
+    }
+
+    private String normalizeIdentityNumber(String identityNumber) {
+        String digits = identityNumber == null ? "" : identityNumber.replaceAll("\\D", "");
+        if (!digits.matches("[1-9][0-9]{10}")) throw new IllegalArgumentException("Invalid Turkish identity number");
+        int odd = 0, even = 0, total = 0;
+        for (int i = 0; i < 10; i++) {
+            int digit = digits.charAt(i) - '0';
+            total += digit;
+            if (i % 2 == 0) odd += digit; else even += digit;
+        }
+        int tenth = digits.charAt(9) - '0';
+        int eleventh = digits.charAt(10) - '0';
+        if (((odd * 7 - even) % 10) != tenth || (total % 10) != eleventh) {
+            throw new IllegalArgumentException("Invalid Turkish identity number");
+        }
+        return digits;
     }
 }

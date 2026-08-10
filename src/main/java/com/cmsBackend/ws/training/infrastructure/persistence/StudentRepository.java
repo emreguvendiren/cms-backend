@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 public interface StudentRepository extends JpaRepository<StudentJpaEntity, UUID> {
     Optional<StudentJpaEntity> findByIdAndDeletedAtIsNull(UUID id);
     boolean existsByPhoneLookupHash(String phoneLookupHash);
+    boolean existsByIdentityNumberLookupHash(String identityNumberLookupHash);
 
     @Query("""
             select s from StudentJpaEntity s
