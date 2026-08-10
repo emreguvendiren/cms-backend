@@ -56,6 +56,13 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
                 .content(body().replace("\"PROSPECTIVE\"", "\"INACTIVE\""))).andExpect(status().isBadRequest());
     }
 
+    @Test void acceptsElevenDigitIdentityNumberWithoutChecksumBlockingOperationalRegistration() throws Exception {
+        mvc.perform(post("/api/students").with(auth("student:create")).contentType(MediaType.APPLICATION_JSON)
+                .content(body().replace("10000000146", "12345678901").replace("deniz@example.com", "elif@example.com")
+                        .replace("0555 123 45 67", "0555 123 45 68")))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.identityNumberMasked").value("***********"));
+    }
+
     private org.springframework.test.web.servlet.ResultActions create(String authority) throws Exception {
         return mvc.perform(post("/api/students").with(auth(authority)).contentType(MediaType.APPLICATION_JSON).content(body()));
     }

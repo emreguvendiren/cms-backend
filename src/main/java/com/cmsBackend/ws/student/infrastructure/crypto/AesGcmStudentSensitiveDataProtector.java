@@ -86,18 +86,7 @@ public class AesGcmStudentSensitiveDataProtector implements StudentSensitiveData
 
     private String normalizeIdentityNumber(String identityNumber) {
         String digits = identityNumber == null ? "" : identityNumber.replaceAll("\\D", "");
-        if (!digits.matches("[1-9][0-9]{10}")) throw new IllegalArgumentException("Invalid Turkish identity number");
-        int odd = 0, even = 0, total = 0;
-        for (int i = 0; i < 10; i++) {
-            int digit = digits.charAt(i) - '0';
-            total += digit;
-            if (i % 2 == 0) odd += digit; else even += digit;
-        }
-        int tenth = digits.charAt(9) - '0';
-        int eleventh = digits.charAt(10) - '0';
-        if (((odd * 7 - even) % 10) != tenth || (total % 10) != eleventh) {
-            throw new IllegalArgumentException("Invalid Turkish identity number");
-        }
+        if (!digits.matches("[0-9]{11}")) throw new IllegalArgumentException("Invalid Turkish identity number");
         return digits;
     }
 }
