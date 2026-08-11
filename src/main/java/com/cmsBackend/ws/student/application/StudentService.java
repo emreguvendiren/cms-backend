@@ -116,6 +116,19 @@ public class StudentService {
         return new PhoneRevealResponse(phone);
     }
 
+    @PreAuthorize("hasAuthority('student:identity-number:reveal')")
+    @Transactional(readOnly = true)
+    public IdentityNumberRevealResponse revealIdentityNumber(UUID id, UUID actorId) {
+        var student = find(id);
+        if (student.getIdentityNumberCiphertext() == null || student.getIdentityNumberIv() == null
+                || student.getIdentityNumberKeyVersion() == null) throw new StudentNotFoundException();
+        String identityNumber = sensitiveData.revealIdentityNumber(id,
+                new ProtectedStudentSensitiveData(student.getIdentityNumberCiphertext(), student.getIdentityNumberIv(),
+                        student.getIdentityNumberLookupHash(), student.getIdentityNumberKeyVersion()));
+        audit.studentIdentityNumberRevealed(actorId, id);
+        return new IdentityNumberRevealResponse(identityNumber);
+    }
+
     private StudentJpaEntity find(UUID id) { return students.findByIdAndDeletedAtIsNull(id).orElseThrow(StudentNotFoundException::new); }
     private ProtectedStudentSensitiveData protectPhone(UUID id, String phone) {
         try { return sensitiveData.protectPhone(id, phone); }

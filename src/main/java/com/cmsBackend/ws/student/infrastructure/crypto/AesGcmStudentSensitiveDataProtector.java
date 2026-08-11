@@ -49,12 +49,21 @@ public class AesGcmStudentSensitiveDataProtector implements StudentSensitiveData
 
     @Override
     public String revealPhone(UUID studentId, ProtectedStudentSensitiveData value) {
+        return reveal(studentId, "phone", value);
+    }
+
+    @Override
+    public String revealIdentityNumber(UUID studentId, ProtectedStudentSensitiveData value) {
+        return reveal(studentId, "identity-number", value);
+    }
+
+    private String reveal(UUID studentId, String field, ProtectedStudentSensitiveData value) {
         if (value.keyVersion() != properties.getActiveKeyVersion()) throw new SensitiveDataProtectionException();
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, encryptionKey(), new GCMParameterSpec(TAG_BITS,
                     Base64.getDecoder().decode(value.iv())));
-            cipher.updateAAD(aad(studentId, "phone"));
+            cipher.updateAAD(aad(studentId, field));
             return new String(cipher.doFinal(Base64.getDecoder().decode(value.ciphertext())), StandardCharsets.UTF_8);
         } catch (GeneralSecurityException | IllegalArgumentException exception) {
             throw new SensitiveDataProtectionException();

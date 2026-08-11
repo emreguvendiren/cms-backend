@@ -5,7 +5,9 @@ import java.security.KeyPairGenerator;
 import java.util.Base64;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles("test")
 abstract class IntegrationTestSupport {
     private static final KeyPair KEY_PAIR = generateKeyPair();
 

@@ -49,6 +49,15 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.phone").value("+905551234567"));
     }
 
+    @Test void identityNumberRevealRequiresSeparateAuthorityAndDisablesCaching() throws Exception {
+        String location = create("student:create").andReturn().getResponse().getHeader("Location");
+        mvc.perform(post(location + "/identity-number/reveal").with(auth("student:read")))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(location + "/identity-number/reveal").with(auth("student:identity-number:reveal")))
+                .andExpect(status().isOk()).andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+                .andExpect(jsonPath("$.identityNumber").value("10000000146"));
+    }
+
     @Test void enforcesInactiveReasonAndDuplicateSensitiveData() throws Exception {
         create("student:create").andExpect(status().isCreated());
         create("student:create").andExpect(status().isConflict());

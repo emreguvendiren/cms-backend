@@ -41,5 +41,10 @@ public class StudentController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .header("Pragma", "no-cache").body(service.revealPhone(id, actor(jwt)));
     }
+    @PostMapping("/{id}/identity-number/reveal")
+    public ResponseEntity<IdentityNumberRevealResponse> revealIdentityNumber(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .header("Pragma", "no-cache").body(service.revealIdentityNumber(id, actor(jwt)));
+    }
     private UUID actor(Jwt jwt) { return UUID.fromString(jwt.getSubject()); }
 }

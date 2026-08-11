@@ -159,6 +159,36 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.students[0].paymentStatus").value("PENDING"));
     }
 
+    @Test void enrollsStudentWithPromissoryNotePlanAndReturnsItInClassDetail() throws Exception {
+        var item = newClass(activeCourse());
+        var student = prospectiveStudent("senet@example.com");
+        String body = """
+                {"studentId":"%s","registrationFee":24000,"paymentPlan":"PROMISSORY_NOTE",
+                 "installmentCount":4,"firstPaymentDate":"2026-08-20","paymentStatus":"PENDING",
+                 "note":"Senetli kayit."}
+                """.formatted(student.getId());
+        var authorized = jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
+                .authorities(new SimpleGrantedAuthority("class:enrollment:create"));
+
+        mvc.perform(post("/api/classes/{id}/enrollments", item.getId()).with(authorized)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.paymentPlan").value("PROMISSORY_NOTE"))
+                .andExpect(jsonPath("$.installmentCount").value(4))
+                .andExpect(jsonPath("$.firstPaymentDate").value("2026-08-20"))
+                .andExpect(jsonPath("$.payments.length()").value(4))
+                .andExpect(jsonPath("$.payments[0].dueDate").value("2026-08-20"))
+                .andExpect(jsonPath("$.payments[3].dueDate").value("2026-11-20"))
+                .andExpect(jsonPath("$.payments[0].amount").value(6000));
+
+        mvc.perform(get("/api/classes/{id}", item.getId())
+                        .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
+                                .authorities(new SimpleGrantedAuthority("class:read"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.students[0].paymentPlan").value("PROMISSORY_NOTE"))
+                .andExpect(jsonPath("$.students[0].payments.length()").value(4));
+    }
+
     @Test void updatesAndDeletesClassEnrollmentWithDedicatedAuthorities() throws Exception {
         var item = newClass(activeCourse());
         var student = prospectiveStudent("manage-enrollment@example.com");
@@ -280,6 +310,29 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
                 """.formatted(first.getId());
         mvc.perform(post("/api/classes/{id}/enrollments", item.getId()).with(authorized)
                         .contentType(MediaType.APPLICATION_JSON).content(unexpectedExpectedDate))
+                .andExpect(status().isBadRequest());
+
+        String completedInstallment = """
+                {"studentId":"%s","registrationFee":1000,"paymentPlan":"INSTALLMENT",
+                 "installmentCount":3,"firstPaymentDate":"2026-08-15","paymentStatus":"COMPLETED"}
+                """.formatted(first.getId());
+        mvc.perform(post("/api/classes/{id}/enrollments", item.getId()).with(authorized)
+                        .contentType(MediaType.APPLICATION_JSON).content(completedInstallment))
+                .andExpect(status().isBadRequest());
+
+        String missingPromissorySchedule = """
+                {"studentId":"%s","registrationFee":1000,"paymentPlan":"PROMISSORY_NOTE","paymentStatus":"PENDING"}
+                """.formatted(first.getId());
+        mvc.perform(post("/api/classes/{id}/enrollments", item.getId()).with(authorized)
+                        .contentType(MediaType.APPLICATION_JSON).content(missingPromissorySchedule))
+                .andExpect(status().isBadRequest());
+
+        String completedPromissory = """
+                {"studentId":"%s","registrationFee":1000,"paymentPlan":"PROMISSORY_NOTE",
+                 "installmentCount":3,"firstPaymentDate":"2026-08-15","paymentStatus":"COMPLETED"}
+                """.formatted(first.getId());
+        mvc.perform(post("/api/classes/{id}/enrollments", item.getId()).with(authorized)
+                        .contentType(MediaType.APPLICATION_JSON).content(completedPromissory))
                 .andExpect(status().isBadRequest());
 
         mvc.perform(post("/api/classes/{id}/enrollments", item.getId()).with(authorized)

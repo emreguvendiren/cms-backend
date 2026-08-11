@@ -347,6 +347,22 @@ paths:
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
+  /api/students/{studentId}/identity-number/reveal:
+    post:
+      operationId: revealStudentIdentityNumber
+      description: Reveals an identity number only to separately authorized users and writes a security audit event.
+      security: [{bearerAuth: []}]
+      parameters: [{name: studentId, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses:
+        '200':
+          description: Plaintext identity number; response must not be cached
+          headers:
+            Cache-Control: {schema: {type: string, const: no-store}}
+          content: {application/json: {schema: {$ref: '#/components/schemas/IdentityNumberRevealResponse'}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
   /api/auth/csrf:
     get:
       operationId: getCsrfToken
@@ -599,7 +615,7 @@ components:
         version: {type: integer, format: int64, minimum: 0}
     PaymentPlanType:
       type: string
-      enum: [CASH, INSTALLMENT]
+      enum: [CASH, INSTALLMENT, PROMISSORY_NOTE]
     PaymentStatus:
       type: string
       enum: [PENDING, COMPLETED]
@@ -615,12 +631,14 @@ components:
           type: [integer, 'null']
           minimum: 2
           maximum: 24
-          description: Required only when paymentPlan is INSTALLMENT; must be absent for CASH.
+          description: Required when paymentPlan is INSTALLMENT or PROMISSORY_NOTE; must be absent for CASH.
         firstPaymentDate:
           type: [string, 'null']
           format: date
-          description: Required only when paymentPlan is INSTALLMENT; must be absent for CASH.
-        paymentStatus: {$ref: '#/components/schemas/PaymentStatus'}
+          description: Required when paymentPlan is INSTALLMENT or PROMISSORY_NOTE; must be absent for CASH.
+        paymentStatus:
+          allOf: [{$ref: '#/components/schemas/PaymentStatus'}]
+          description: Must be PENDING when paymentPlan is INSTALLMENT or PROMISSORY_NOTE; CASH may be PENDING or COMPLETED.
         expectedPaymentDate:
           type: [string, 'null']
           format: date
@@ -635,7 +653,9 @@ components:
         paymentPlan: {$ref: '#/components/schemas/PaymentPlanType'}
         installmentCount: {type: [integer, 'null'], minimum: 2, maximum: 24}
         firstPaymentDate: {type: [string, 'null'], format: date}
-        paymentStatus: {$ref: '#/components/schemas/PaymentStatus'}
+        paymentStatus:
+          allOf: [{$ref: '#/components/schemas/PaymentStatus'}]
+          description: Must be PENDING when paymentPlan is INSTALLMENT or PROMISSORY_NOTE; CASH may be PENDING or COMPLETED.
         expectedPaymentDate: {type: [string, 'null'], format: date}
         note: {type: [string, 'null'], maxLength: 1000}
         version: {type: integer, format: int64, minimum: 0}
@@ -749,6 +769,11 @@ components:
       additionalProperties: false
       required: [phone]
       properties: {phone: {type: string}}
+    IdentityNumberRevealResponse:
+      type: object
+      additionalProperties: false
+      required: [identityNumber]
+      properties: {identityNumber: {type: string}}
     LoginRequest:
       type: object
       required: [email, password]

@@ -2,5 +2,6 @@ package com.cmsBackend.ws.training.domain;
 
 public enum PaymentPlanType {
     CASH,
-    INSTALLMENT
+    INSTALLMENT,
+    PROMISSORY_NOTE
 }

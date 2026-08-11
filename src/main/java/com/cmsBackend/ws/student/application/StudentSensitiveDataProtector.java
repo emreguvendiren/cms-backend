@@ -6,5 +6,6 @@ public interface StudentSensitiveDataProtector {
     ProtectedStudentSensitiveData protectPhone(UUID studentId, String phone);
     ProtectedStudentSensitiveData protectIdentityNumber(UUID studentId, String identityNumber);
     String revealPhone(UUID studentId, ProtectedStudentSensitiveData protectedPhone);
+    String revealIdentityNumber(UUID studentId, ProtectedStudentSensitiveData protectedIdentityNumber);
 }
  

@@ -101,8 +101,8 @@ public class CourseClassService {
         var enrollment = new ClassEnrollmentJpaEntity(
                 UUID.randomUUID(), courseClass, student, EnrollmentStatus.ACTIVE,
                 request.registrationFee(), request.paymentPlan(),
-                request.paymentPlan() == PaymentPlanType.INSTALLMENT ? request.installmentCount() : null,
-                request.paymentPlan() == PaymentPlanType.INSTALLMENT ? request.firstPaymentDate() : null,
+                isScheduledPaymentPlan(request.paymentPlan()) ? request.installmentCount() : null,
+                isScheduledPaymentPlan(request.paymentPlan()) ? request.firstPaymentDate() : null,
                 request.paymentStatus(),
                 request.paymentPlan() == PaymentPlanType.CASH && request.paymentStatus() == PaymentStatus.PENDING
                         ? request.expectedPaymentDate() : null,
@@ -134,8 +134,8 @@ public class CourseClassService {
             throw new TrainingConflictException();
         }
         enrollment.updatePayment(request.registrationFee(), request.paymentPlan(),
-                request.paymentPlan() == PaymentPlanType.INSTALLMENT ? request.installmentCount() : null,
-                request.paymentPlan() == PaymentPlanType.INSTALLMENT ? request.firstPaymentDate() : null,
+                isScheduledPaymentPlan(request.paymentPlan()) ? request.installmentCount() : null,
+                isScheduledPaymentPlan(request.paymentPlan()) ? request.firstPaymentDate() : null,
                 request.paymentStatus(),
                 request.paymentPlan() == PaymentPlanType.CASH && request.paymentStatus() == PaymentStatus.PENDING
                         ? request.expectedPaymentDate() : null,
@@ -205,9 +205,12 @@ public class CourseClassService {
     }
 
     private void validatePaymentPlan(CreateClassEnrollmentRequest request) {
-        if (request.paymentPlan() == PaymentPlanType.INSTALLMENT
+        if (isScheduledPaymentPlan(request.paymentPlan())
                 && (request.installmentCount() == null || request.firstPaymentDate() == null)) {
-            throw new IllegalArgumentException("Installment count and first payment date are required.");
+            throw new IllegalArgumentException("Installment count and first payment date are required for scheduled payment plans.");
+        }
+        if (isScheduledPaymentPlan(request.paymentPlan()) && request.paymentStatus() == PaymentStatus.COMPLETED) {
+            throw new IllegalArgumentException("Scheduled payment plans cannot start as completed.");
         }
         if (request.paymentPlan() == PaymentPlanType.CASH
                 && (request.installmentCount() != null || request.firstPaymentDate() != null)) {
@@ -224,9 +227,12 @@ public class CourseClassService {
     }
 
     private void validatePaymentPlan(UpdateClassEnrollmentRequest request) {
-        if (request.paymentPlan() == PaymentPlanType.INSTALLMENT
+        if (isScheduledPaymentPlan(request.paymentPlan())
                 && (request.installmentCount() == null || request.firstPaymentDate() == null)) {
-            throw new IllegalArgumentException("Installment count and first payment date are required.");
+            throw new IllegalArgumentException("Installment count and first payment date are required for scheduled payment plans.");
+        }
+        if (isScheduledPaymentPlan(request.paymentPlan()) && request.paymentStatus() == PaymentStatus.COMPLETED) {
+            throw new IllegalArgumentException("Scheduled payment plans cannot start as completed.");
         }
         if (request.paymentPlan() == PaymentPlanType.CASH
                 && (request.installmentCount() != null || request.firstPaymentDate() != null)) {
@@ -250,18 +256,22 @@ public class CourseClassService {
             ClassEnrollmentJpaEntity enrollment, BigDecimal totalAmount, PaymentPlanType plan,
             Integer installmentCount, LocalDate firstPaymentDate, PaymentStatus status,
             LocalDate expectedPaymentDate) {
-        int count = plan == PaymentPlanType.INSTALLMENT ? installmentCount : 1;
+        int count = isScheduledPaymentPlan(plan) ? installmentCount : 1;
         BigDecimal regularAmount = totalAmount.divide(BigDecimal.valueOf(count), 2, RoundingMode.DOWN);
         BigDecimal allocated = regularAmount.multiply(BigDecimal.valueOf(count - 1L));
         var result = new ArrayList<EnrollmentPaymentJpaEntity>(count);
         for (int index = 0; index < count; index++) {
             BigDecimal amount = index == count - 1 ? totalAmount.subtract(allocated) : regularAmount;
-            LocalDate dueDate = plan == PaymentPlanType.INSTALLMENT
+            LocalDate dueDate = isScheduledPaymentPlan(plan)
                     ? firstPaymentDate.plusMonths(index) : expectedPaymentDate;
             LocalDate paidAt = status == PaymentStatus.COMPLETED ? LocalDate.now() : null;
             result.add(new EnrollmentPaymentJpaEntity(UUID.randomUUID(), enrollment, index + 1, count,
                     amount, dueDate, status, paidAt));
         }
         return result;
+    }
+
+    private boolean isScheduledPaymentPlan(PaymentPlanType plan) {
+        return plan == PaymentPlanType.INSTALLMENT || plan == PaymentPlanType.PROMISSORY_NOTE;
     }
 }

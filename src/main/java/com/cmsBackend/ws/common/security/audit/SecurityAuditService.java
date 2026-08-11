@@ -41,6 +41,10 @@ public class SecurityAuditService {
         AUDIT.info("event=student_phone_reveal outcome=success actorId={} studentId={}", actorId, studentId);
     }
 
+    public void studentIdentityNumberRevealed(UUID actorId, UUID studentId) {
+        AUDIT.info("event=student_identity_number_reveal outcome=success actorId={} studentId={}", actorId, studentId);
+    }
+
     public void studentChanged(String action, UUID actorId, UUID studentId) {
         AUDIT.info("event=student_{} outcome=success actorId={} studentId={}", action, actorId, studentId);
     }
