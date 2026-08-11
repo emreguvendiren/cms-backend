@@ -607,15 +607,25 @@ components:
         dueDate: {type: [string, 'null'], format: date}
         status: {$ref: '#/components/schemas/PaymentStatus'}
         paidAt: {type: [string, 'null'], format: date}
+        paymentMethod:
+          anyOf:
+            - {$ref: '#/components/schemas/PaymentMethod'}
+            - type: 'null'
         version: {type: integer, format: int64}
     ReceiveEnrollmentPaymentRequest:
       type: object
-      required: [version]
+      additionalProperties: false
+      required: [version, paidAt, paymentMethod]
       properties:
         version: {type: integer, format: int64, minimum: 0}
+        paidAt: {type: string, format: date}
+        paymentMethod: {$ref: '#/components/schemas/PaymentMethod'}
     PaymentPlanType:
       type: string
       enum: [CASH, INSTALLMENT, PROMISSORY_NOTE]
+    PaymentMethod:
+      type: string
+      enum: [CASH, CREDIT_CARD, BANK_TRANSFER]
     PaymentStatus:
       type: string
       enum: [PENDING, COMPLETED]

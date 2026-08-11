@@ -1,6 +1,7 @@
 package com.cmsBackend.ws.training.api.model;
 
 import com.cmsBackend.ws.training.domain.EnrollmentStatus;
+import com.cmsBackend.ws.training.domain.PaymentMethod;
 import com.cmsBackend.ws.training.domain.PaymentPlanType;
 import com.cmsBackend.ws.training.domain.PaymentStatus;
 import com.cmsBackend.ws.training.infrastructure.persistence.ClassEnrollmentJpaEntity;
@@ -25,11 +26,12 @@ public record ClassDetailResponse(ClassResponse classInfo, List<EnrolledStudentR
         }
     }
     public record EnrollmentPaymentResponse(UUID id, int installmentNumber, int installmentTotal,
-            BigDecimal amount, LocalDate dueDate, PaymentStatus status, LocalDate paidAt, long version) {
+            BigDecimal amount, LocalDate dueDate, PaymentStatus status, LocalDate paidAt,
+            PaymentMethod paymentMethod, long version) {
         public static EnrollmentPaymentResponse from(EnrollmentPaymentJpaEntity payment) {
             return new EnrollmentPaymentResponse(payment.getId(), payment.getInstallmentNumber(),
                     payment.getInstallmentTotal(), payment.getAmount(), payment.getDueDate(), payment.getStatus(),
-                    payment.getPaidAt(), payment.getVersion());
+                    payment.getPaidAt(), payment.getPaymentMethod(), payment.getVersion());
         }
     }
 }

@@ -237,21 +237,30 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         mvc.perform(post(path, item.getId(), enrollment.getId(), payment.getId())
                         .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
                                 .authorities(new SimpleGrantedAuthority("class:read")))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0,\"paidAt\":\"2026-08-11\",\"paymentMethod\":\"CASH\"}"))
                 .andExpect(status().isForbidden());
         mvc.perform(post(path, item.getId(), enrollment.getId(), payment.getId())
                         .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
                                 .authorities(new SimpleGrantedAuthority("class:enrollment:update")))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post(path, item.getId(), enrollment.getId(), payment.getId())
+                        .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
+                                .authorities(new SimpleGrantedAuthority("class:enrollment:update")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0,\"paidAt\":\"2026-08-11\",\"paymentMethod\":\"BANK_TRANSFER\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paymentStatus").value("COMPLETED"))
                 .andExpect(jsonPath("$.payments[0].status").value("COMPLETED"))
-                .andExpect(jsonPath("$.payments[0].paidAt").value(LocalDate.now().toString()))
+                .andExpect(jsonPath("$.payments[0].paidAt").value("2026-08-11"))
+                .andExpect(jsonPath("$.payments[0].paymentMethod").value("BANK_TRANSFER"))
                 .andExpect(jsonPath("$.payments[0].version").value(1));
         mvc.perform(post(path, item.getId(), enrollment.getId(), payment.getId())
                         .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
                                 .authorities(new SimpleGrantedAuthority("class:enrollment:update")))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0,\"paidAt\":\"2026-08-11\",\"paymentMethod\":\"CASH\"}"))
                 .andExpect(status().isConflict());
     }
 

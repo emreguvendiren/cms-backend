@@ -161,7 +161,7 @@ public class CourseClassService {
         if (payment.getVersion() != request.version() || payment.getStatus() == PaymentStatus.COMPLETED) {
             throw new TrainingConflictException();
         }
-        payment.markReceived(LocalDate.now());
+        payment.markReceived(request.paidAt(), request.paymentMethod());
         enrollment.refreshPaymentStatus();
         var saved = enrollments.saveAndFlush(enrollment);
         audit.classEnrollmentChanged("payment_receive", actorId, classId, enrollment.getStudent().getId());

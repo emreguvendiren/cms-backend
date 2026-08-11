@@ -1,5 +1,6 @@
 package com.cmsBackend.ws.training.infrastructure.persistence;
 
+import com.cmsBackend.ws.training.domain.PaymentMethod;
 import com.cmsBackend.ws.training.domain.PaymentStatus;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ public class EnrollmentPaymentJpaEntity {
     @Column(name = "due_date") private LocalDate dueDate;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private PaymentStatus status;
     @Column(name = "paid_at") private LocalDate paidAt;
+    @Enumerated(EnumType.STRING) @Column(name = "payment_method", length = 30) private PaymentMethod paymentMethod;
     @Version private long version;
 
     protected EnrollmentPaymentJpaEntity() {}
@@ -40,11 +42,13 @@ public class EnrollmentPaymentJpaEntity {
     public LocalDate getDueDate() { return dueDate; }
     public PaymentStatus getStatus() { return status; }
     public LocalDate getPaidAt() { return paidAt; }
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public long getVersion() { return version; }
 
-    public void markReceived(LocalDate receivedAt) {
+    public void markReceived(LocalDate receivedAt, PaymentMethod method) {
         if (status == PaymentStatus.COMPLETED) throw new IllegalStateException("Payment is already completed.");
         status = PaymentStatus.COMPLETED;
         paidAt = receivedAt;
+        paymentMethod = method;
     }
 }
