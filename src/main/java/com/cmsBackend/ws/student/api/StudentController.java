@@ -7,6 +7,7 @@ import com.cmsBackend.ws.training.api.model.PageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,9 @@ public class StudentController {
         return service.list(search, status, page, size);
     }
     @GetMapping("/{id}") public StudentResponse detail(@PathVariable UUID id) { return service.detail(id); }
+    @GetMapping("/{id}/enrollments") public List<StudentEnrollmentResponse> enrollments(@PathVariable UUID id) {
+        return service.enrollments(id);
+    }
     @PostMapping public ResponseEntity<StudentResponse> create(@Valid @RequestBody CreateStudentRequest request, @AuthenticationPrincipal Jwt jwt) {
         var response = service.create(request, actor(jwt));
         return ResponseEntity.created(URI.create("/api/students/" + response.id())).body(response);

@@ -310,6 +310,23 @@ paths:
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
+  /api/students/{studentId}/enrollments:
+    get:
+      operationId: listStudentEnrollments
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: studentId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200':
+          description: Student course enrollments with payment schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/StudentEnrollment'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
     put:
       operationId: updateStudent
       security: [{bearerAuth: []}]
@@ -774,6 +791,35 @@ components:
           required: [content]
           properties:
             content: {type: array, items: {$ref: '#/components/schemas/Student'}}
+    StudentEnrollment:
+      type: object
+      additionalProperties: false
+      required: [classId, classCode, className, courseId, courseCode, courseName, instructorName, startDate, endDate, classStatus, enrollmentId, enrollmentStatus, registrationFee, paymentPlan, paymentStatus, payments, version]
+      properties:
+        classId: {type: string, format: uuid}
+        classCode: {type: string}
+        className: {type: string}
+        courseId: {type: string, format: uuid}
+        courseCode: {type: string}
+        courseName: {type: string}
+        instructorName: {type: string}
+        startDate: {type: string, format: date}
+        endDate: {type: string, format: date}
+        classStatus: {$ref: '#/components/schemas/ClassStatus'}
+        enrollmentId: {type: string, format: uuid}
+        enrollmentStatus: {type: string, enum: [ACTIVE, COMPLETED, CANCELLED]}
+        registrationFee: {type: number, format: double, minimum: 0}
+        paymentPlan: {$ref: '#/components/schemas/PaymentPlanType'}
+        installmentCount: {type: [integer, 'null'], minimum: 1, maximum: 36}
+        firstPaymentDate: {type: [string, 'null'], format: date}
+        paymentStatus: {$ref: '#/components/schemas/PaymentStatus'}
+        expectedPaymentDate: {type: [string, 'null'], format: date}
+        note: {type: [string, 'null'], maxLength: 1000}
+        payments:
+          type: array
+          maxItems: 36
+          items: {$ref: '#/components/schemas/EnrollmentPayment'}
+        version: {type: integer, format: int64, minimum: 0}
     PhoneRevealResponse:
       type: object
       additionalProperties: false

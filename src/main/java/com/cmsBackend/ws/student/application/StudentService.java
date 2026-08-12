@@ -4,7 +4,9 @@ import com.cmsBackend.ws.common.security.audit.SecurityAuditService;
 import com.cmsBackend.ws.student.api.model.*;
 import com.cmsBackend.ws.student.domain.StudentStatus;
 import com.cmsBackend.ws.training.api.model.PageResponse;
+import com.cmsBackend.ws.student.api.model.StudentEnrollmentResponse;
 import com.cmsBackend.ws.training.infrastructure.persistence.StudentJpaEntity;
+import com.cmsBackend.ws.training.infrastructure.persistence.ClassEnrollmentRepository;
 import com.cmsBackend.ws.training.infrastructure.persistence.StudentRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -19,12 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StudentService {
     private final StudentRepository students;
+    private final ClassEnrollmentRepository enrollments;
     private final StudentSensitiveDataProtector sensitiveData;
     private final SecurityAuditService audit;
     private final Clock clock = Clock.systemUTC();
 
-    public StudentService(StudentRepository students, StudentSensitiveDataProtector sensitiveData, SecurityAuditService audit) {
-        this.students = students; this.sensitiveData = sensitiveData; this.audit = audit;
+    public StudentService(StudentRepository students, ClassEnrollmentRepository enrollments,
+            StudentSensitiveDataProtector sensitiveData, SecurityAuditService audit) {
+        this.students = students; this.enrollments = enrollments; this.sensitiveData = sensitiveData; this.audit = audit;
     }
 
     @PreAuthorize("hasAuthority('student:read')")
@@ -38,6 +42,13 @@ public class StudentService {
     @PreAuthorize("hasAuthority('student:read')")
     @Transactional(readOnly = true)
     public StudentResponse detail(UUID id) { return StudentResponse.from(find(id)); }
+
+    @PreAuthorize("hasAuthority('student:read')")
+    @Transactional(readOnly = true)
+    public java.util.List<StudentEnrollmentResponse> enrollments(UUID id) {
+        find(id);
+        return enrollments.findStudentEnrollments(id).stream().map(StudentEnrollmentResponse::from).toList();
+    }
 
     @PreAuthorize("hasAuthority('student:create')")
     @Transactional

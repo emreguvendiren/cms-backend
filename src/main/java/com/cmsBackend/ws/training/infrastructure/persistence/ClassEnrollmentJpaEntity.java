@@ -42,7 +42,7 @@ public class ClassEnrollmentJpaEntity {
         this.firstPaymentDate=firstPaymentDate; this.paymentStatus=paymentStatus;
         this.expectedPaymentDate=expectedPaymentDate; this.note=note;
     }
-    public UUID getId(){return id;} public StudentJpaEntity getStudent(){return student;} public EnrollmentStatus getStatus(){return status;}
+    public UUID getId(){return id;} public CourseClassJpaEntity getCourseClass(){return courseClass;} public StudentJpaEntity getStudent(){return student;} public EnrollmentStatus getStatus(){return status;}
     public BigDecimal getRegistrationFee(){return registrationFee;} public PaymentPlanType getPaymentPlan(){return paymentPlan;}
     public Integer getInstallmentCount(){return installmentCount;} public LocalDate getFirstPaymentDate(){return firstPaymentDate;}
     public PaymentStatus getPaymentStatus(){return paymentStatus;} public LocalDate getExpectedPaymentDate(){return expectedPaymentDate;}
