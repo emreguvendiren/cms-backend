@@ -42,6 +42,7 @@ public class StudentJpaEntity {
     @Column(name = "school_name", length = 160) private String schoolName;
     @Column(length = 120) private String profession;
     @Column(length = 500) private String address;
+    @Column(length = 500) private String note;
     @Column(name = "created_by_user_id") private UUID createdByUserId;
     @Column(name = "deleted_at") private Instant deletedAt;
     @Column(name = "deleted_by") private UUID deletedBy;
@@ -61,12 +62,12 @@ public class StudentJpaEntity {
             LocalDate registrationDate, String source, boolean kvkkConsent, String inactiveReason,
             LocalDate expectedStartDate, String birthPlace, LocalDate birthDate, String fatherName, String motherName,
             Gender gender, String educationLevel, String schoolName, String profession, String address,
-            UUID createdByUserId) {
+            String note, UUID createdByUserId) {
         this.id = id;
         this.createdByUserId = createdByUserId;
         updateProfile(fullName, email, status, activeCourse, registrationDate, source, kvkkConsent,
                 inactiveReason, expectedStartDate, birthPlace, birthDate, fatherName, motherName, gender,
-                educationLevel, schoolName, profession, address);
+                educationLevel, schoolName, profession, address, note);
         updateProtectedPhone(phoneCiphertext, phoneIv, phoneLookupHash, phoneKeyVersion);
         updateProtectedIdentityNumber(identityNumberCiphertext, identityNumberIv, identityNumberLookupHash,
                 identityNumberKeyVersion);
@@ -75,20 +76,20 @@ public class StudentJpaEntity {
     public void updateProfile(String fullName, String email, StudentStatus status, String activeCourse,
             LocalDate registrationDate, String source, boolean kvkkConsent, String inactiveReason,
             LocalDate expectedStartDate, String birthPlace, LocalDate birthDate, String fatherName, String motherName,
-            Gender gender, String educationLevel, String schoolName, String profession, String address) {
+            Gender gender, String educationLevel, String schoolName, String profession, String address, String note) {
         this.fullName = fullName; this.email = email; this.status = status; this.activeCourse = activeCourse;
         this.registrationDate = registrationDate; this.source = source; this.kvkkConsent = kvkkConsent;
         this.inactiveReason = inactiveReason; this.expectedStartDate = expectedStartDate;
         this.birthPlace = birthPlace; this.birthDate = birthDate; this.fatherName = fatherName; this.motherName = motherName;
         this.gender = gender; this.educationLevel = educationLevel; this.schoolName = schoolName;
-        this.profession = profession; this.address = address;
+        this.profession = profession; this.address = address; this.note = note;
     }
 
     public void updateProfile(String fullName, String email, StudentStatus status, String activeCourse,
             LocalDate registrationDate, String source, boolean kvkkConsent, String inactiveReason,
             LocalDate expectedStartDate) {
         updateProfile(fullName, email, status, activeCourse, registrationDate, source, kvkkConsent, inactiveReason,
-                expectedStartDate, null, null, null, null, Gender.NOT_SPECIFIED, null, null, null, null);
+                expectedStartDate, null, null, null, null, Gender.NOT_SPECIFIED, null, null, null, null, null);
     }
 
     public void updateProtectedPhone(String ciphertext, String iv, String lookupHash, int keyVersion) {
@@ -123,7 +124,7 @@ public class StudentJpaEntity {
     public String getFatherName(){return fatherName;} public String getMotherName(){return motherName;}
     public Gender getGender(){return gender;} public String getEducationLevel(){return educationLevel;}
     public String getSchoolName(){return schoolName;} public String getProfession(){return profession;}
-    public String getAddress(){return address;}
+    public String getAddress(){return address;} public String getNote(){return note;}
     public UUID getCreatedByUserId(){return createdByUserId;}
     public long getVersion(){return version;}
 }

@@ -310,23 +310,6 @@ paths:
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
-  /api/students/{studentId}/enrollments:
-    get:
-      operationId: listStudentEnrollments
-      security: [{bearerAuth: []}]
-      parameters:
-        - {name: studentId, in: path, required: true, schema: {type: string, format: uuid}}
-      responses:
-        '200':
-          description: Student course enrollments with payment schedules
-          content:
-            application/json:
-              schema:
-                type: array
-                items: {$ref: '#/components/schemas/StudentEnrollment'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '403': {$ref: '#/components/responses/Forbidden'}
-        '404': {$ref: '#/components/responses/NotFound'}
     put:
       operationId: updateStudent
       security: [{bearerAuth: []}]
@@ -345,6 +328,23 @@ paths:
       parameters: [{name: studentId, in: path, required: true, schema: {type: string, format: uuid}}]
       responses:
         '204': {description: Student soft-deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/students/{studentId}/enrollments:
+    get:
+      operationId: listStudentEnrollments
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: studentId, in: path, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200':
+          description: Student course enrollments with payment schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/StudentEnrollment'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -754,6 +754,7 @@ components:
         schoolName: {type: [string, 'null'], maxLength: 160}
         profession: {type: [string, 'null'], maxLength: 120}
         address: {type: [string, 'null'], maxLength: 500}
+        note: {type: [string, 'null'], maxLength: 500}
     UpdateStudentRequest:
       allOf:
         - {$ref: '#/components/schemas/CreateStudentRequest'}
@@ -790,6 +791,7 @@ components:
         schoolName: {type: [string, 'null']}
         profession: {type: [string, 'null']}
         address: {type: [string, 'null']}
+        note: {type: [string, 'null']}
         createdByUserId: {type: [string, 'null'], format: uuid}
         createdByFullName: {type: [string, 'null']}
         version: {type: integer, format: int64}

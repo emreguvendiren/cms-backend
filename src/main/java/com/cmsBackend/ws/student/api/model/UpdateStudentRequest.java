@@ -26,4 +26,5 @@ public record UpdateStudentRequest(
         @Size(max=160) String schoolName,
         @Size(max=120) String profession,
         @Size(max=500) String address,
+        @Size(max=500) String note,
         @PositiveOrZero long version) {}

@@ -45,6 +45,7 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.identityNumberMasked").value("***********"))
                 .andExpect(jsonPath("$.createdByUserId").value(actor.toString()))
                 .andExpect(jsonPath("$.createdByFullName").value("Kayit Danismani"))
+                .andExpect(jsonPath("$.note").value("Hafta ici aksam grubu ile ilgileniyor."))
                 .andExpect(jsonPath("$.phone").doesNotExist())
                 .andExpect(jsonPath("$.identityNumber").doesNotExist()).andReturn().getResponse().getContentAsString();
         UUID id = UUID.fromString(response.replaceAll(".*\\\"id\\\":\\\"([^\\\"]+).*", "$1"));
@@ -55,6 +56,7 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
         assertThat(stored.getIdentityNumberIv()).isNotBlank();
         assertThat(stored.getIdentityNumberLookupHash()).hasSize(64);
         assertThat(stored.getCreatedByUserId()).isEqualTo(actor);
+        assertThat(stored.getNote()).isEqualTo("Hafta ici aksam grubu ile ilgileniyor.");
         mvc.perform(get("/api/students").with(auth("student:read"))).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("+905551234567"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("10000000146"))));
@@ -136,6 +138,7 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
        "identityNumber":"10000000146","birthPlace":"Izmir","birthDate":"2001-05-20",
        "fatherName":"Mehmet","motherName":"Ayse","gender":"MALE","registrationDate":"2026-08-06",
        "source":"Web sitesi","kvkkConsent":true,"expectedStartDate":"2026-09-01",
-       "educationLevel":"Lise","schoolName":"Teknik Lise","profession":"Teknisyen","address":"Konak, Izmir"}
+       "educationLevel":"Lise","schoolName":"Teknik Lise","profession":"Teknisyen","address":"Konak, Izmir",
+       "note":"Hafta ici aksam grubu ile ilgileniyor."}
       """; }
 }

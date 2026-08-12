@@ -11,7 +11,7 @@ public record StudentResponse(UUID id, String fullName, String email, boolean ph
         String fatherName, String motherName, Gender gender, StudentStatus status, String activeCourse,
         LocalDate registrationDate, String source, boolean kvkkConsent, String inactiveReason,
         LocalDate expectedStartDate, String educationLevel, String schoolName, String profession, String address,
-        UUID createdByUserId, String createdByFullName, long version) {
+        String note, UUID createdByUserId, String createdByFullName, long version) {
     public static StudentResponse from(StudentJpaEntity student) {
         return from(student, null);
     }
@@ -24,6 +24,6 @@ public record StudentResponse(UUID id, String fullName, String email, boolean ph
                 student.getStatus(), student.getActiveCourse(), student.getRegistrationDate(), student.getSource(),
                 student.isKvkkConsent(), student.getInactiveReason(), student.getExpectedStartDate(),
                 student.getEducationLevel(), student.getSchoolName(), student.getProfession(), student.getAddress(),
-                student.getCreatedByUserId(), createdByFullName, student.getVersion());
+                student.getNote(), student.getCreatedByUserId(), createdByFullName, student.getVersion());
     }
 }

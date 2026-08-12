@@ -86,7 +86,7 @@ public class StudentService {
                 nullableTrim(request.birthPlace()), request.birthDate(), nullableTrim(request.fatherName()),
                 nullableTrim(request.motherName()), request.gender(), nullableTrim(request.educationLevel()),
                 nullableTrim(request.schoolName()), nullableTrim(request.profession()), nullableTrim(request.address()),
-                actorId);
+                nullableTrim(request.note()), actorId);
         try {
             StudentResponse response = StudentResponse.from(students.saveAndFlush(student), userFullName(userFullNames(java.util.List.of(actorId)), actorId));
             audit.studentChanged("create", actorId, id); return response;
@@ -104,7 +104,7 @@ public class StudentService {
                 nullableTrim(request.inactiveReason()), request.expectedStartDate(), nullableTrim(request.birthPlace()),
                 request.birthDate(), nullableTrim(request.fatherName()), nullableTrim(request.motherName()),
                 request.gender(), nullableTrim(request.educationLevel()), nullableTrim(request.schoolName()),
-                nullableTrim(request.profession()), nullableTrim(request.address()));
+                nullableTrim(request.profession()), nullableTrim(request.address()), nullableTrim(request.note()));
         if (request.phone() != null && !request.phone().isBlank()) {
             ProtectedStudentSensitiveData protectedPhone = protectPhone(id, request.phone());
             if (!protectedPhone.lookupHash().equals(student.getPhoneLookupHash())
