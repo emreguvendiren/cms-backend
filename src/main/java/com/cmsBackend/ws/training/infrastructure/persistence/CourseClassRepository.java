@@ -2,6 +2,7 @@ package com.cmsBackend.ws.training.infrastructure.persistence;
 
 import com.cmsBackend.ws.training.domain.ClassStatus;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -38,4 +39,14 @@ public interface CourseClassRepository extends JpaRepository<CourseClassJpaEntit
     @EntityGraph(attributePaths = "course")
     @Query("select cc from CourseClassJpaEntity cc where cc.id = :id")
     java.util.Optional<CourseClassJpaEntity> findForEnrollmentById(@Param("id") UUID id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update CourseClassJpaEntity cc
+            set cc.status = com.cmsBackend.ws.training.domain.ClassStatus.COMPLETED,
+                cc.version = cc.version + 1
+            where cc.endDate < :today
+              and cc.status = com.cmsBackend.ws.training.domain.ClassStatus.IN_PROGRESS
+            """)
+    int completeExpiredClasses(@Param("today") java.time.LocalDate today);
 }

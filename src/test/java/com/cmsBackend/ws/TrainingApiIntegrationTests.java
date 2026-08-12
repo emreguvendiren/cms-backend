@@ -8,6 +8,7 @@ import com.cmsBackend.ws.training.domain.*;
 import com.cmsBackend.ws.training.infrastructure.persistence.*;
 import com.cmsBackend.ws.student.domain.StudentStatus;
 import com.cmsBackend.ws.training.application.CourseClassService;
+import com.cmsBackend.ws.training.application.CourseClassLifecycleService;
 import com.cmsBackend.ws.training.application.TrainingConflictException;
 import com.cmsBackend.ws.training.api.model.CreateClassEnrollmentRequest;
 import com.cmsBackend.ws.user.infrastructure.persistence.SpringDataUserAccountRepository;
@@ -40,6 +41,7 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
     @Autowired StudentRepository students;
     @Autowired ClassEnrollmentRepository enrollments;
     @Autowired CourseClassService classService;
+    @Autowired CourseClassLifecycleService lifecycleService;
     @Autowired SpringDataUserAccountRepository users;
 
     @BeforeEach void setUp() { enrollments.deleteAll(); students.deleteAll(); classes.deleteAll(); courses.deleteAll(); }
@@ -84,6 +86,41 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         mvc.perform(put("/api/classes/{id}", item.getId()).with(jwt().authorities(new SimpleGrantedAuthority("class:update"))).contentType(MediaType.APPLICATION_JSON).content(update))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("IN_PROGRESS"))
                 .andExpect(jsonPath("$.startTime").value("10:00:00")).andExpect(jsonPath("$.endTime").value("17:00:00"));
+    }
+
+    @Test void lifecycleCompletesOnlyInProgressClassesWhoseEndDateHasPassed() {
+        var course = activeCourse();
+        var expired = classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-EXPIRED", "Biten Sinif",
+                course, "Murat Aydin", LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-10"),
+                LocalTime.parse("09:00"), LocalTime.parse("18:00"), 14, ClassStatus.IN_PROGRESS));
+        var endsToday = classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-TODAY", "Bugun Biten Sinif",
+                course, "Murat Aydin", LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-12"),
+                LocalTime.parse("09:00"), LocalTime.parse("18:00"), 14, ClassStatus.IN_PROGRESS));
+        var plannedExpired = classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-PLANNED-OLD",
+                "Gecmis Planli Sinif", course, "Murat Aydin", LocalDate.parse("2026-08-01"),
+                LocalDate.parse("2026-08-09"), LocalTime.parse("09:00"), LocalTime.parse("18:00"),
+                14, ClassStatus.PLANNED));
+        var alreadyCompleted = classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-COMPLETED",
+                "Zaten Tamamlandi", course, "Murat Aydin", LocalDate.parse("2026-08-01"),
+                LocalDate.parse("2026-08-09"), LocalTime.parse("09:00"), LocalTime.parse("18:00"),
+                14, ClassStatus.COMPLETED));
+        classes.flush();
+
+        int completedCount = lifecycleService.completeExpiredClasses(LocalDate.parse("2026-08-12"));
+
+        Assertions.assertEquals(1, completedCount);
+        var reloadedExpired = classes.findById(expired.getId()).orElseThrow();
+        var reloadedEndsToday = classes.findById(endsToday.getId()).orElseThrow();
+        var reloadedPlannedExpired = classes.findById(plannedExpired.getId()).orElseThrow();
+        var reloadedAlreadyCompleted = classes.findById(alreadyCompleted.getId()).orElseThrow();
+        Assertions.assertEquals(ClassStatus.COMPLETED, reloadedExpired.getStatus());
+        Assertions.assertEquals(1, reloadedExpired.getVersion());
+        Assertions.assertEquals(ClassStatus.IN_PROGRESS, reloadedEndsToday.getStatus());
+        Assertions.assertEquals(0, reloadedEndsToday.getVersion());
+        Assertions.assertEquals(ClassStatus.PLANNED, reloadedPlannedExpired.getStatus());
+        Assertions.assertEquals(0, reloadedPlannedExpired.getVersion());
+        Assertions.assertEquals(ClassStatus.COMPLETED, reloadedAlreadyCompleted.getStatus());
+        Assertions.assertEquals(0, reloadedAlreadyCompleted.getVersion());
     }
 
     @Test void returnsClassDetailStudentsAndProtectsEnrolledClassFromDeletion() throws Exception {
