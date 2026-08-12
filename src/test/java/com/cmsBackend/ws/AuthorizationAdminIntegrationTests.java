@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class AuthorizationAdminIntegrationTests extends IntegrationTestSupport {
     @Autowired MockMvc mvc;
     @Autowired SpringDataUserAccountRepository users;
+    @Autowired PasswordEncoder passwordEncoder;
     UUID actorId;
     UUID targetId;
 
@@ -35,6 +37,43 @@ class AuthorizationAdminIntegrationTests extends IntegrationTestSupport {
         mvc.perform(get("/api/admin/users")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/admin/users").with(jwt().authorities(new SimpleGrantedAuthority("profile:read"))))
                 .andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/users").contentType(MediaType.APPLICATION_JSON).content(createUserBody("New User", "new@example.com", "StrongPass1!")))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/admin/users").with(jwt().authorities(new SimpleGrantedAuthority("profile:read")))
+                        .contentType(MediaType.APPLICATION_JSON).content(createUserBody("New User", "new@example.com", "StrongPass1!")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test void createsManagedUserWithEncodedPasswordAndDefaultProfileAuthority() throws Exception {
+        var admin = jwt().jwt(builder -> builder.subject(actorId.toString())).authorities(new SimpleGrantedAuthority("user:permission:manage"));
+        mvc.perform(post("/api/admin/users").with(admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createUserBody("New Staff", "New.Staff@Example.com", "StrongPass1!")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("new.staff@example.com"))
+                .andExpect(jsonPath("$.fullName").value("New Staff"))
+                .andExpect(jsonPath("$.enabled").value(true))
+                .andExpect(jsonPath("$.authorities[0]").value("profile:read"))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+
+        var created = users.findByEmailIgnoreCase("new.staff@example.com").orElseThrow().toDomain();
+        org.junit.jupiter.api.Assertions.assertTrue(passwordEncoder.matches("StrongPass1!", created.passwordHash()));
+        org.junit.jupiter.api.Assertions.assertNotEquals("StrongPass1!", created.passwordHash());
+    }
+
+    @Test void rejectsDuplicateEmailAndPasswordMismatch() throws Exception {
+        var admin = jwt().jwt(builder -> builder.subject(actorId.toString())).authorities(new SimpleGrantedAuthority("user:permission:manage"));
+        mvc.perform(post("/api/admin/users").with(admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createUserBody("Duplicate", targetId + "@example.com", "StrongPass1!")))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("USER_EMAIL_EXISTS"));
+        mvc.perform(post("/api/admin/users").with(admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"New Staff","email":"newer@example.com","password":"StrongPass1!","passwordConfirm":"Different1!"}
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     @Test void listsCatalogAndUpdatesTargetAuthorities() throws Exception {
@@ -57,5 +96,11 @@ class AuthorizationAdminIntegrationTests extends IntegrationTestSupport {
         mvc.perform(put("/api/admin/users/{id}/authorities", targetId).with(admin)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"authorities\":[\"system:root\"]}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_AUTHORITY"));
+    }
+
+    private String createUserBody(String fullName, String email, String password) {
+        return """
+                {"fullName":"%s","email":"%s","password":"%s","passwordConfirm":"%s"}
+                """.formatted(fullName, email, password, password);
     }
 }

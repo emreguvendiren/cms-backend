@@ -296,6 +296,24 @@ paths:
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      operationId: createManagedUser
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateManagedUserRequest'}
+      responses:
+        '201':
+          description: User account created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ManagedUser'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
   /api/students:
     get:
       operationId: listStudents
@@ -530,6 +548,15 @@ components:
           maxItems: 50
           uniqueItems: true
           items: {type: string}
+    CreateManagedUserRequest:
+      type: object
+      additionalProperties: false
+      required: [fullName, email, password, passwordConfirm]
+      properties:
+        fullName: {type: string, minLength: 1, maxLength: 160}
+        email: {type: string, format: email, maxLength: 254}
+        password: {type: string, minLength: 8, maxLength: 100, format: password}
+        passwordConfirm: {type: string, minLength: 8, maxLength: 100, format: password}
     ManagedUser:
       type: object
       required: [id, email, fullName, enabled, authorities]

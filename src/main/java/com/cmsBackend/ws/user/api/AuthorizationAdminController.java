@@ -2,9 +2,13 @@ package com.cmsBackend.ws.user.api;
 
 import com.cmsBackend.ws.user.application.AuthorizationAdministrationService;
 import com.cmsBackend.ws.user.domain.AuthorityCatalog;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +38,14 @@ public class AuthorizationAdminController {
         return ManagedUserPage.from(service.listUsers(search, page, size));
     }
 
+    @PostMapping("/users")
+    public ResponseEntity<ManagedUserResponse> create(@AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CreateManagedUserRequest request) {
+        var response = ManagedUserResponse.from(service.createUser(UUID.fromString(jwt.getSubject()),
+                request.fullName(), request.email(), request.password()));
+        return ResponseEntity.created(URI.create("/api/admin/users/" + response.id())).body(response);
+    }
+
     @PutMapping("/users/{userId}/authorities")
     public ResponseEntity<ManagedUserResponse> replace(@AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID userId, @Valid @RequestBody ReplaceAuthoritiesRequest request) {
@@ -42,6 +54,16 @@ public class AuthorizationAdminController {
     }
 
     public record ReplaceAuthoritiesRequest(@NotNull @Size(max = 50) Set<@NotNull String> authorities) {}
+    public record CreateManagedUserRequest(
+            @NotBlank @Size(max = 160) String fullName,
+            @NotBlank @Email @Size(max = 254) String email,
+            @NotBlank @Size(min = 8, max = 100) String password,
+            @NotBlank @Size(min = 8, max = 100) String passwordConfirm) {
+        @AssertTrue(message = "Passwords must match.")
+        public boolean isPasswordConfirmed() {
+            return password != null && password.equals(passwordConfirm);
+        }
+    }
     public record AuthorizationCatalogResponse(List<String> authorities, Map<String, Set<String>> roles) {}
     public record ManagedUserResponse(UUID id, String email, String fullName, boolean enabled, Set<String> authorities) {
         static ManagedUserResponse from(AuthorizationAdministrationService.ManagedUser user) {

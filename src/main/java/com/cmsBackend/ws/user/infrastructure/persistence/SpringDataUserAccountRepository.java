@@ -11,6 +11,8 @@ public interface SpringDataUserAccountRepository extends JpaRepository<UserAccou
     @EntityGraph(attributePaths = "authorities")
     Optional<UserAccountJpaEntity> findByEmailIgnoreCase(String email);
 
+    boolean existsByEmailIgnoreCase(String email);
+
     @Override
     @EntityGraph(attributePaths = "authorities")
     Optional<UserAccountJpaEntity> findById(UUID id);

@@ -3,6 +3,7 @@ package com.cmsBackend.ws.training.api;
 import com.cmsBackend.ws.common.security.web.ApiError;
 import com.cmsBackend.ws.training.application.TrainingConflictException;
 import com.cmsBackend.ws.training.application.TrainingNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,7 @@ public class TrainingExceptionHandler {
                 .body(ApiError.of("TRAINING_RESOURCE_CONFLICT", "The training record conflicts with existing data."));
     }
 
-    @ExceptionHandler({IllegalArgumentException.class, HandlerMethodValidationException.class})
+    @ExceptionHandler({IllegalArgumentException.class, HandlerMethodValidationException.class, ConstraintViolationException.class})
     ResponseEntity<ApiError> invalidRequest() {
         return ResponseEntity.badRequest().body(ApiError.of("VALIDATION_FAILED", "The request is invalid."));
     }

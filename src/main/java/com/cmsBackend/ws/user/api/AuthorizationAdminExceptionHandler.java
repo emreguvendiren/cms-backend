@@ -1,6 +1,7 @@
 package com.cmsBackend.ws.user.api;
 
 import com.cmsBackend.ws.common.security.web.ApiError;
+import com.cmsBackend.ws.user.application.DuplicateUserEmailException;
 import com.cmsBackend.ws.user.application.SelfPermissionRemovalException;
 import com.cmsBackend.ws.user.application.UserNotFoundException;
 import com.cmsBackend.ws.user.application.UnknownAuthorityException;
@@ -15,4 +16,6 @@ public class AuthorizationAdminExceptionHandler {
     ResponseEntity<ApiError> selfLockout() { return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of("SELF_PERMISSION_REMOVAL", "You cannot remove your own permission-management authority.")); }
     @ExceptionHandler(UnknownAuthorityException.class)
     ResponseEntity<ApiError> invalid() { return ResponseEntity.badRequest().body(ApiError.of("INVALID_AUTHORITY", "The authority selection is invalid.")); }
+    @ExceptionHandler(DuplicateUserEmailException.class)
+    ResponseEntity<ApiError> duplicateEmail() { return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of("USER_EMAIL_EXISTS", "A user with this email already exists.")); }
 }
