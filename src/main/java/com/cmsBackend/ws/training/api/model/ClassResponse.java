@@ -3,6 +3,7 @@ package com.cmsBackend.ws.training.api.model;
 import com.cmsBackend.ws.training.domain.ClassStatus;
 import com.cmsBackend.ws.training.infrastructure.persistence.CourseClassJpaEntity;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 public record ClassResponse(
@@ -15,6 +16,8 @@ public record ClassResponse(
         String instructorName,
         LocalDate startDate,
         LocalDate endDate,
+        LocalTime startTime,
+        LocalTime endTime,
         int capacity,
         int enrolledCount,
         ClassStatus status,
@@ -24,6 +27,7 @@ public record ClassResponse(
         return new ClassResponse(
                 courseClass.getId(), courseClass.getCode(), courseClass.getName(), course.getId(), course.getCode(),
                 course.getName(), courseClass.getInstructorName(), courseClass.getStartDate(), courseClass.getEndDate(),
+                courseClass.getStartTime(), courseClass.getEndTime(),
                 courseClass.getCapacity(), courseClass.getEnrolledCount(), courseClass.getStatus(), courseClass.getVersion());
     }
 }

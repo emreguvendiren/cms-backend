@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import org.hibernate.annotations.Formula;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
@@ -44,6 +45,12 @@ public class CourseClassJpaEntity {
     @Column(nullable = false)
     private LocalDate endDate;
 
+    @Column(nullable = false, columnDefinition = "time default '09:00:00'")
+    private LocalTime startTime;
+
+    @Column(nullable = false, columnDefinition = "time default '18:00:00'")
+    private LocalTime endTime;
+
     @Column(nullable = false)
     private int capacity;
 
@@ -64,8 +71,10 @@ public class CourseClassJpaEntity {
 
     public CourseClassJpaEntity(
             UUID id, String code, String name, CourseJpaEntity course, String instructorName,
-            LocalDate startDate, LocalDate endDate, int capacity, ClassStatus status) {
+            LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime,
+            int capacity, ClassStatus status) {
         if (endDate.isBefore(startDate)) throw new IllegalArgumentException("End date cannot be before start date.");
+        if (!endTime.isAfter(startTime)) throw new IllegalArgumentException("End time must be after start time.");
         this.id = id;
         this.code = code;
         this.name = name;
@@ -73,6 +82,8 @@ public class CourseClassJpaEntity {
         this.instructorName = instructorName;
         this.startDate = startDate;
         this.endDate = endDate;
+        this.startTime = startTime;
+        this.endTime = endTime;
         this.capacity = capacity;
         this.storedEnrolledCount = 0;
         this.status = status;
@@ -85,19 +96,24 @@ public class CourseClassJpaEntity {
     public String getInstructorName() { return instructorName; }
     public LocalDate getStartDate() { return startDate; }
     public LocalDate getEndDate() { return endDate; }
+    public LocalTime getStartTime() { return startTime; }
+    public LocalTime getEndTime() { return endTime; }
     public int getCapacity() { return capacity; }
     public int getEnrolledCount() { return enrolledCount; }
     public ClassStatus getStatus() { return status; }
     public long getVersion() { return version; }
 
     public void update(String name, CourseJpaEntity course, String instructorName, LocalDate startDate,
-                       LocalDate endDate, int capacity, ClassStatus status) {
+                       LocalDate endDate, LocalTime startTime, LocalTime endTime, int capacity, ClassStatus status) {
         if (endDate.isBefore(startDate)) throw new IllegalArgumentException("End date cannot be before start date.");
+        if (!endTime.isAfter(startTime)) throw new IllegalArgumentException("End time must be after start time.");
         this.name = name;
         this.course = course;
         this.instructorName = instructorName;
         this.startDate = startDate;
         this.endDate = endDate;
+        this.startTime = startTime;
+        this.endTime = endTime;
         this.capacity = capacity;
         this.status = status;
     }

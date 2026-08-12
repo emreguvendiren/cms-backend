@@ -62,14 +62,15 @@ public class CourseClassService {
     @PreAuthorize("hasAuthority('class:create')")
     @Transactional
     public ClassResponse create(CreateClassRequest request) {
-        if (request.endDate().isBefore(request.startDate())) throw new IllegalArgumentException("Invalid date range.");
+        validateClassSchedule(request.startDate(), request.endDate(), request.startTime(), request.endTime());
         UUID id = UUID.randomUUID();
         String code = "SNF-" + id.toString().substring(0, 8).toUpperCase(java.util.Locale.ROOT);
         var course = courses.findById(request.courseId()).orElseThrow(TrainingNotFoundException::new);
         if (course.getStatus() == CourseStatus.ARCHIVED) throw new TrainingConflictException();
         var courseClass = new CourseClassJpaEntity(
                 id, code, request.name().trim(), course, request.instructorName().trim(),
-                request.startDate(), request.endDate(), request.capacity(), request.status());
+                request.startDate(), request.endDate(), request.startTime(), request.endTime(),
+                request.capacity(), request.status());
         return ClassResponse.from(classes.save(courseClass));
     }
 
@@ -182,13 +183,14 @@ public class CourseClassService {
     @PreAuthorize("hasAuthority('class:update')")
     @Transactional
     public ClassResponse update(UUID id, UpdateClassRequest request) {
-        if (request.endDate().isBefore(request.startDate())) throw new IllegalArgumentException("Invalid date range.");
+        validateClassSchedule(request.startDate(), request.endDate(), request.startTime(), request.endTime());
         var courseClass = classes.findById(id).orElseThrow(TrainingNotFoundException::new);
         if (courseClass.getVersion() != request.version()) throw new TrainingConflictException();
         var course = courses.findById(request.courseId()).orElseThrow(TrainingNotFoundException::new);
         if (course.getStatus() == CourseStatus.ARCHIVED) throw new TrainingConflictException();
         if (request.capacity() < courseClass.getEnrolledCount()) throw new TrainingConflictException();
-        courseClass.update(request.name().trim(), course, request.instructorName().trim(), request.startDate(), request.endDate(), request.capacity(), request.status());
+        courseClass.update(request.name().trim(), course, request.instructorName().trim(), request.startDate(),
+                request.endDate(), request.startTime(), request.endTime(), request.capacity(), request.status());
         return ClassResponse.from(classes.saveAndFlush(courseClass));
     }
 
@@ -202,6 +204,12 @@ public class CourseClassService {
 
     private String normalizeSearch(String search) {
         return search == null ? "" : search.trim();
+    }
+
+    private void validateClassSchedule(LocalDate startDate, LocalDate endDate,
+            java.time.LocalTime startTime, java.time.LocalTime endTime) {
+        if (endDate.isBefore(startDate)) throw new IllegalArgumentException("Invalid date range.");
+        if (!endTime.isAfter(startTime)) throw new IllegalArgumentException("Invalid time range.");
     }
 
     private void validatePaymentPlan(CreateClassEnrollmentRequest request) {

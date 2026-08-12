@@ -12,6 +12,7 @@ import com.cmsBackend.ws.training.application.TrainingConflictException;
 import com.cmsBackend.ws.training.api.model.CreateClassEnrollmentRequest;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -76,9 +77,10 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         mvc.perform(post("/api/classes").with(jwt().authorities(new SimpleGrantedAuthority("class:create"))).contentType(MediaType.APPLICATION_JSON).content(classBody(course.getId())))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.code", org.hamcrest.Matchers.startsWith("SNF-")));
         var item=newClass(course);
-        String update="{\"name\":\"AutoCAD Güncel Sınıf\",\"courseId\":\"%s\",\"instructorName\":\"Murat Aydın\",\"startDate\":\"2026-08-11\",\"endDate\":\"2026-09-03\",\"capacity\":16,\"status\":\"IN_PROGRESS\",\"version\":0}".formatted(course.getId());
+        String update="{\"name\":\"AutoCAD Güncel Sınıf\",\"courseId\":\"%s\",\"instructorName\":\"Murat Aydın\",\"startDate\":\"2026-08-11\",\"endDate\":\"2026-09-03\",\"startTime\":\"10:00\",\"endTime\":\"17:00\",\"capacity\":16,\"status\":\"IN_PROGRESS\",\"version\":0}".formatted(course.getId());
         mvc.perform(put("/api/classes/{id}", item.getId()).with(jwt().authorities(new SimpleGrantedAuthority("class:update"))).contentType(MediaType.APPLICATION_JSON).content(update))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.startTime").value("10:00:00")).andExpect(jsonPath("$.endTime").value("17:00:00"));
     }
 
     @Test void returnsClassDetailStudentsAndProtectsEnrolledClassFromDeletion() throws Exception {
@@ -292,7 +294,7 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         var course = activeCourse();
         var item = classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-CAPACITY", "Tek Kişilik",
                 course, "Murat Aydın", LocalDate.parse("2026-08-10"), LocalDate.parse("2026-09-02"),
-                1, ClassStatus.PLANNED));
+                LocalTime.parse("09:00"), LocalTime.parse("18:00"), 1, ClassStatus.PLANNED));
         var first = prospectiveStudent("first@example.com");
         var second = prospectiveStudent("second@example.com");
         var authorized = jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
@@ -380,7 +382,7 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         var course = activeCourse();
         var item = classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-CONCURRENT", "Son Kontenjan",
                 course, "Murat Aydın", LocalDate.parse("2026-08-10"), LocalDate.parse("2026-09-02"),
-                1, ClassStatus.PLANNED));
+                LocalTime.parse("09:00"), LocalTime.parse("18:00"), 1, ClassStatus.PLANNED));
         var first = prospectiveStudent("concurrent-first@example.com");
         var second = prospectiveStudent("concurrent-second@example.com");
         var start = new CountDownLatch(1);
@@ -416,11 +418,13 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         var course=activeCourse(); var auth=jwt().authorities(new SimpleGrantedAuthority("class:create"));
         String invalid=classBody(course.getId()).replace("2026-08-10", "2026-10-10");
         mvc.perform(post("/api/classes").with(auth).contentType(MediaType.APPLICATION_JSON).content(invalid)).andExpect(status().isBadRequest());
+        String invalidTime=classBody(course.getId()).replace("\"endTime\":\"18:00\"", "\"endTime\":\"08:00\"");
+        mvc.perform(post("/api/classes").with(auth).contentType(MediaType.APPLICATION_JSON).content(invalidTime)).andExpect(status().isBadRequest());
         mvc.perform(post("/api/classes").with(auth).contentType(MediaType.APPLICATION_JSON).content(classBody(UUID.randomUUID()))).andExpect(status().isNotFound());
     }
 
     private CourseJpaEntity activeCourse(){return courses.save(new CourseJpaEntity(UUID.randomUUID(), "KRS-001", "AutoCAD 2D Teknik Çizim", 48, new BigDecimal("12500"), CourseStatus.ACTIVE));}
-    private CourseClassJpaEntity newClass(CourseJpaEntity course){return classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-TEST", "AutoCAD Akşam", course, "Murat Aydın", LocalDate.parse("2026-08-10"), LocalDate.parse("2026-09-02"), 14, ClassStatus.PLANNED));}
+    private CourseClassJpaEntity newClass(CourseJpaEntity course){return classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-TEST", "AutoCAD Akşam", course, "Murat Aydın", LocalDate.parse("2026-08-10"), LocalDate.parse("2026-09-02"), LocalTime.parse("09:00"), LocalTime.parse("18:00"), 14, ClassStatus.PLANNED));}
     private StudentJpaEntity prospectiveStudent(String email) {
         var student = new StudentJpaEntity(UUID.randomUUID(), "Elif Yılmaz", email, "ignored");
         student.updateProfile("Elif Yılmaz", email, StudentStatus.PROSPECTIVE, null, LocalDate.parse("2026-08-01"),
@@ -431,5 +435,5 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
         return "{\"studentId\":\"%s\",\"registrationFee\":1000,\"paymentPlan\":\"CASH\",\"paymentStatus\":\"PENDING\",\"expectedPaymentDate\":\"2026-08-20\"}".formatted(studentId);
     }
     private String courseBody(String status){return "{\"name\":\"AutoCAD 2D Teknik Çizim\",\"durationHours\":48,\"listPrice\":12500,\"status\":\"%s\"}".formatted(status);}
-    private String classBody(UUID courseId){return "{\"name\":\"AutoCAD Hafta İçi Akşam\",\"courseId\":\"%s\",\"instructorName\":\"Murat Aydın\",\"startDate\":\"2026-08-10\",\"endDate\":\"2026-09-02\",\"capacity\":14,\"status\":\"PLANNED\"}".formatted(courseId);}
+    private String classBody(UUID courseId){return "{\"name\":\"AutoCAD Hafta İçi Akşam\",\"courseId\":\"%s\",\"instructorName\":\"Murat Aydın\",\"startDate\":\"2026-08-10\",\"endDate\":\"2026-09-02\",\"startTime\":\"09:00\",\"endTime\":\"18:00\",\"capacity\":14,\"status\":\"PLANNED\"}".formatted(courseId);}
 }

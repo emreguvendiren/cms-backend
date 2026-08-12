@@ -16,6 +16,7 @@ import com.cmsBackend.ws.training.infrastructure.persistence.EnrollmentPaymentJp
 import com.cmsBackend.ws.training.infrastructure.persistence.StudentRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,7 +91,7 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
                 48, new BigDecimal("12500"), CourseStatus.ACTIVE));
         var courseClass = classes.save(new CourseClassJpaEntity(UUID.randomUUID(), "SNF-001", "Hafta içi akşam",
                 course, "Murat Aydın", LocalDate.parse("2026-08-10"), LocalDate.parse("2026-09-02"),
-                14, ClassStatus.PLANNED));
+                LocalTime.parse("09:00"), LocalTime.parse("18:00"), 14, ClassStatus.PLANNED));
         var student = students.save(new com.cmsBackend.ws.training.infrastructure.persistence.StudentJpaEntity(
                 UUID.randomUUID(), "Deniz Arslan", "deniz@example.com", "ignored"));
         var enrollment = new ClassEnrollmentJpaEntity(UUID.randomUUID(), courseClass, student, EnrollmentStatus.ACTIVE,
@@ -109,6 +110,8 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].courseName").value("SolidWorks Profesyonel"))
                 .andExpect(jsonPath("$[0].className").value("Hafta içi akşam"))
+                .andExpect(jsonPath("$[0].startTime").value("09:00:00"))
+                .andExpect(jsonPath("$[0].endTime").value("18:00:00"))
                 .andExpect(jsonPath("$[0].paymentPlan").value("INSTALLMENT"))
                 .andExpect(jsonPath("$[0].payments.length()").value(2))
                 .andExpect(jsonPath("$[0].payments[0].amount").value(12000));
