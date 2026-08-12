@@ -25,8 +25,9 @@ public class LocalAdminBootstrap implements ApplicationRunner {
         if (existing.isPresent()) {
             existing.get().replaceAuthorities(Set.copyOf(AuthorityCatalog.ALL));
             existing.get().replacePasswordHash(passwords.encode("0"));
+            existing.get().replaceFullName("Admin Kullanici");
             return;
         }
-        users.save(new UserAccountJpaEntity(UUID.randomUUID(), "admin@admin.com", passwords.encode("0"), true, Set.copyOf(AuthorityCatalog.ALL)));
+        users.save(new UserAccountJpaEntity(UUID.randomUUID(), "admin@admin.com", "Admin Kullanici", passwords.encode("0"), true, Set.copyOf(AuthorityCatalog.ALL)));
     }
 }

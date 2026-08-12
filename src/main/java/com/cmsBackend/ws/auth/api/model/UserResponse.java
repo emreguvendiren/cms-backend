@@ -4,8 +4,8 @@ import com.cmsBackend.ws.user.domain.UserAccount;
 import java.util.Set;
 import java.util.UUID;
 
-public record UserResponse(UUID id, String email, Set<String> authorities) {
+public record UserResponse(UUID id, String email, String fullName, Set<String> authorities) {
     public static UserResponse from(UserAccount user) {
-        return new UserResponse(user.id(), user.email(), user.authorities());
+        return new UserResponse(user.id(), user.email(), user.fullName(), user.authorities());
     }
 }

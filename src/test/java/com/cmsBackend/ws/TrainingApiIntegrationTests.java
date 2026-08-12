@@ -10,6 +10,8 @@ import com.cmsBackend.ws.student.domain.StudentStatus;
 import com.cmsBackend.ws.training.application.CourseClassService;
 import com.cmsBackend.ws.training.application.TrainingConflictException;
 import com.cmsBackend.ws.training.api.model.CreateClassEnrollmentRequest;
+import com.cmsBackend.ws.user.infrastructure.persistence.SpringDataUserAccountRepository;
+import com.cmsBackend.ws.user.infrastructure.persistence.UserAccountJpaEntity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -38,6 +40,7 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
     @Autowired StudentRepository students;
     @Autowired ClassEnrollmentRepository enrollments;
     @Autowired CourseClassService classService;
+    @Autowired SpringDataUserAccountRepository users;
 
     @BeforeEach void setUp() { enrollments.deleteAll(); students.deleteAll(); classes.deleteAll(); courses.deleteAll(); }
 
@@ -247,8 +250,11 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
                                 .authorities(new SimpleGrantedAuthority("class:enrollment:update")))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0}"))
                 .andExpect(status().isBadRequest());
+        UUID paymentActorId = UUID.randomUUID();
+        users.save(new UserAccountJpaEntity(paymentActorId, paymentActorId + "@example.com", "Muhasebe Uzmani",
+                "unused", true, java.util.Set.of("class:enrollment:update")));
         mvc.perform(post(path, item.getId(), enrollment.getId(), payment.getId())
-                        .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
+                        .with(jwt().jwt(token -> token.subject(paymentActorId.toString()))
                                 .authorities(new SimpleGrantedAuthority("class:enrollment:update")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"version\":0,\"paidAt\":\"2026-08-11\",\"paymentMethod\":\"BANK_TRANSFER\"}"))
@@ -257,7 +263,11 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.payments[0].status").value("COMPLETED"))
                 .andExpect(jsonPath("$.payments[0].paidAt").value("2026-08-11"))
                 .andExpect(jsonPath("$.payments[0].paymentMethod").value("BANK_TRANSFER"))
+                .andExpect(jsonPath("$.payments[0].receivedByUserId").value(paymentActorId.toString()))
+                .andExpect(jsonPath("$.payments[0].receivedByFullName").value("Muhasebe Uzmani"))
                 .andExpect(jsonPath("$.payments[0].version").value(1));
+        Assertions.assertEquals(paymentActorId, enrollments.findByCourseClassIdOrderByStudentFullNameAsc(item.getId())
+                .getFirst().getPayments().getFirst().getReceivedByUserId());
         mvc.perform(post(path, item.getId(), enrollment.getId(), payment.getId())
                         .with(jwt().jwt(token -> token.subject(UUID.randomUUID().toString()))
                                 .authorities(new SimpleGrantedAuthority("class:enrollment:update")))

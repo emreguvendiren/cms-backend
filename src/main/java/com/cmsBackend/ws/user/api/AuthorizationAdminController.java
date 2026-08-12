@@ -43,9 +43,9 @@ public class AuthorizationAdminController {
 
     public record ReplaceAuthoritiesRequest(@NotNull @Size(max = 50) Set<@NotNull String> authorities) {}
     public record AuthorizationCatalogResponse(List<String> authorities, Map<String, Set<String>> roles) {}
-    public record ManagedUserResponse(UUID id, String email, boolean enabled, Set<String> authorities) {
+    public record ManagedUserResponse(UUID id, String email, String fullName, boolean enabled, Set<String> authorities) {
         static ManagedUserResponse from(AuthorizationAdministrationService.ManagedUser user) {
-            return new ManagedUserResponse(user.id(), user.email(), user.enabled(), user.authorities());
+            return new ManagedUserResponse(user.id(), user.email(), user.fullName(), user.enabled(), user.authorities());
         }
     }
     public record ManagedUserPage(List<ManagedUserResponse> content, int page, int size, long totalElements, int totalPages, boolean first, boolean last) {

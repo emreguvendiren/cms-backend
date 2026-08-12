@@ -42,6 +42,7 @@ public class StudentJpaEntity {
     @Column(name = "school_name", length = 160) private String schoolName;
     @Column(length = 120) private String profession;
     @Column(length = 500) private String address;
+    @Column(name = "created_by_user_id") private UUID createdByUserId;
     @Column(name = "deleted_at") private Instant deletedAt;
     @Column(name = "deleted_by") private UUID deletedBy;
     @Version private long version;
@@ -59,8 +60,10 @@ public class StudentJpaEntity {
             String identityNumberLookupHash, int identityNumberKeyVersion, StudentStatus status, String activeCourse,
             LocalDate registrationDate, String source, boolean kvkkConsent, String inactiveReason,
             LocalDate expectedStartDate, String birthPlace, LocalDate birthDate, String fatherName, String motherName,
-            Gender gender, String educationLevel, String schoolName, String profession, String address) {
+            Gender gender, String educationLevel, String schoolName, String profession, String address,
+            UUID createdByUserId) {
         this.id = id;
+        this.createdByUserId = createdByUserId;
         updateProfile(fullName, email, status, activeCourse, registrationDate, source, kvkkConsent,
                 inactiveReason, expectedStartDate, birthPlace, birthDate, fatherName, motherName, gender,
                 educationLevel, schoolName, profession, address);
@@ -121,5 +124,6 @@ public class StudentJpaEntity {
     public Gender getGender(){return gender;} public String getEducationLevel(){return educationLevel;}
     public String getSchoolName(){return schoolName;} public String getProfession(){return profession;}
     public String getAddress(){return address;}
+    public UUID getCreatedByUserId(){return createdByUserId;}
     public long getVersion(){return version;}
 }

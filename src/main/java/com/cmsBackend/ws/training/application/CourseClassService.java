@@ -22,12 +22,17 @@ import com.cmsBackend.ws.training.infrastructure.persistence.CourseClassReposito
 import com.cmsBackend.ws.training.infrastructure.persistence.CourseRepository;
 import com.cmsBackend.ws.training.infrastructure.persistence.ClassEnrollmentRepository;
 import com.cmsBackend.ws.training.infrastructure.persistence.StudentRepository;
+import com.cmsBackend.ws.user.infrastructure.persistence.SpringDataUserAccountRepository;
+import com.cmsBackend.ws.user.infrastructure.persistence.UserAccountJpaEntity;
 import java.util.UUID;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,14 +45,17 @@ public class CourseClassService {
     private final CourseRepository courses;
     private final ClassEnrollmentRepository enrollments;
     private final StudentRepository students;
+    private final SpringDataUserAccountRepository users;
     private final SecurityAuditService audit;
 
     public CourseClassService(CourseClassRepository classes, CourseRepository courses,
-            ClassEnrollmentRepository enrollments, StudentRepository students, SecurityAuditService audit) {
+            ClassEnrollmentRepository enrollments, StudentRepository students,
+            SpringDataUserAccountRepository users, SecurityAuditService audit) {
         this.classes = classes;
         this.courses = courses;
         this.enrollments = enrollments;
         this.students = students;
+        this.users = users;
         this.audit = audit;
     }
 
@@ -79,8 +87,13 @@ public class CourseClassService {
     public ClassDetailResponse detail(UUID id) {
         var courseClass = classes.findById(id).orElseThrow(TrainingNotFoundException::new);
         var students = enrollments.findByCourseClassIdOrderByStudentFullNameAsc(id).stream()
-                .map(ClassDetailResponse.EnrolledStudentResponse::from).toList();
-        return new ClassDetailResponse(ClassResponse.from(courseClass), students);
+                .toList();
+        var userFullNames = userFullNames(students.stream()
+                .flatMap(enrollment -> enrollment.getPayments().stream())
+                .map(payment -> payment.getReceivedByUserId()).toList());
+        var responses = students.stream()
+                .map(enrollment -> ClassDetailResponse.EnrolledStudentResponse.from(enrollment, userFullNames)).toList();
+        return new ClassDetailResponse(ClassResponse.from(courseClass), responses);
     }
 
     @PreAuthorize("hasAuthority('class:enrollment:create')")
@@ -113,7 +126,7 @@ public class CourseClassService {
                 request.expectedPaymentDate()));
         var saved = enrollments.saveAndFlush(enrollment);
         audit.classEnrollmentCreated(actorId, classId, student.getId());
-        return ClassDetailResponse.EnrolledStudentResponse.from(saved);
+        return ClassDetailResponse.EnrolledStudentResponse.from(saved, paymentUserFullNames(saved));
     }
 
     @PreAuthorize("hasAuthority('class:enrollment:update')")
@@ -148,7 +161,7 @@ public class CourseClassService {
         }
         var saved = enrollments.saveAndFlush(enrollment);
         audit.classEnrollmentChanged("update", actorId, classId, enrollment.getStudent().getId());
-        return ClassDetailResponse.EnrolledStudentResponse.from(saved);
+        return ClassDetailResponse.EnrolledStudentResponse.from(saved, paymentUserFullNames(saved));
     }
 
     @PreAuthorize("hasAuthority('class:enrollment:update')")
@@ -162,11 +175,11 @@ public class CourseClassService {
         if (payment.getVersion() != request.version() || payment.getStatus() == PaymentStatus.COMPLETED) {
             throw new TrainingConflictException();
         }
-        payment.markReceived(request.paidAt(), request.paymentMethod());
+        payment.markReceived(request.paidAt(), request.paymentMethod(), actorId);
         enrollment.refreshPaymentStatus();
         var saved = enrollments.saveAndFlush(enrollment);
         audit.classEnrollmentChanged("payment_receive", actorId, classId, enrollment.getStudent().getId());
-        return ClassDetailResponse.EnrolledStudentResponse.from(saved);
+        return ClassDetailResponse.EnrolledStudentResponse.from(saved, paymentUserFullNames(saved));
     }
 
     @PreAuthorize("hasAuthority('class:enrollment:delete')")
@@ -204,6 +217,17 @@ public class CourseClassService {
 
     private String normalizeSearch(String search) {
         return search == null ? "" : search.trim();
+    }
+
+    private Map<UUID, String> paymentUserFullNames(ClassEnrollmentJpaEntity enrollment) {
+        return userFullNames(enrollment.getPayments().stream().map(payment -> payment.getReceivedByUserId()).toList());
+    }
+
+    private Map<UUID, String> userFullNames(Collection<UUID> ids) {
+        var userIds = ids.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        if (userIds.isEmpty()) return Map.of();
+        return users.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserAccountJpaEntity::getId, UserAccountJpaEntity::getFullName));
     }
 
     private void validateClassSchedule(LocalDate startDate, LocalDate endDate,

@@ -511,10 +511,11 @@ components:
           items: {type: string}
     ManagedUser:
       type: object
-      required: [id, email, enabled, authorities]
+      required: [id, email, fullName, enabled, authorities]
       properties:
         id: {type: string, format: uuid}
         email: {type: string, format: email}
+        fullName: {type: string}
         enabled: {type: boolean}
         authorities: {type: array, items: {type: string}, uniqueItems: true}
     ManagedUserPage:
@@ -632,6 +633,8 @@ components:
           anyOf:
             - {$ref: '#/components/schemas/PaymentMethod'}
             - type: 'null'
+        receivedByUserId: {type: [string, 'null'], format: uuid}
+        receivedByFullName: {type: [string, 'null']}
         version: {type: integer, format: int64}
     ReceiveEnrollmentPaymentRequest:
       type: object
@@ -787,6 +790,8 @@ components:
         schoolName: {type: [string, 'null']}
         profession: {type: [string, 'null']}
         address: {type: [string, 'null']}
+        createdByUserId: {type: [string, 'null'], format: uuid}
+        createdByFullName: {type: [string, 'null']}
         version: {type: integer, format: int64}
     StudentPage:
       allOf:
@@ -856,10 +861,11 @@ components:
         user: {$ref: '#/components/schemas/UserResponse'}
     UserResponse:
       type: object
-      required: [id, email, authorities]
+      required: [id, email, fullName, authorities]
       properties:
         id: {type: string, format: uuid}
         email: {type: string, format: email}
+        fullName: {type: string}
         authorities:
           type: array
           items: {type: string}

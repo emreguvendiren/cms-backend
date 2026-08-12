@@ -14,6 +14,8 @@ import com.cmsBackend.ws.training.infrastructure.persistence.CourseJpaEntity;
 import com.cmsBackend.ws.training.infrastructure.persistence.CourseRepository;
 import com.cmsBackend.ws.training.infrastructure.persistence.EnrollmentPaymentJpaEntity;
 import com.cmsBackend.ws.training.infrastructure.persistence.StudentRepository;
+import com.cmsBackend.ws.user.infrastructure.persistence.SpringDataUserAccountRepository;
+import com.cmsBackend.ws.user.infrastructure.persistence.UserAccountJpaEntity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -33,6 +35,7 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
     @Autowired MockMvc mvc; @Autowired StudentRepository students;
     @Autowired CourseRepository courses; @Autowired CourseClassRepository classes;
     @Autowired ClassEnrollmentRepository enrollments;
+    @Autowired SpringDataUserAccountRepository users;
     private final UUID actor = UUID.randomUUID();
     @BeforeEach void clean() { enrollments.deleteAll(); students.deleteAll(); classes.deleteAll(); courses.deleteAll(); }
 
@@ -40,6 +43,8 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
         String response = create("student:create").andExpect(status().isCreated())
                 .andExpect(jsonPath("$.phoneMasked").value("*** *** ** **"))
                 .andExpect(jsonPath("$.identityNumberMasked").value("***********"))
+                .andExpect(jsonPath("$.createdByUserId").value(actor.toString()))
+                .andExpect(jsonPath("$.createdByFullName").value("Kayit Danismani"))
                 .andExpect(jsonPath("$.phone").doesNotExist())
                 .andExpect(jsonPath("$.identityNumber").doesNotExist()).andReturn().getResponse().getContentAsString();
         UUID id = UUID.fromString(response.replaceAll(".*\\\"id\\\":\\\"([^\\\"]+).*", "$1"));
@@ -49,6 +54,7 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
         assertThat(stored.getIdentityNumberCiphertext()).doesNotContain("10000000146");
         assertThat(stored.getIdentityNumberIv()).isNotBlank();
         assertThat(stored.getIdentityNumberLookupHash()).hasSize(64);
+        assertThat(stored.getCreatedByUserId()).isEqualTo(actor);
         mvc.perform(get("/api/students").with(auth("student:read"))).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("+905551234567"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("10000000146"))));
@@ -118,6 +124,8 @@ class StudentApiIntegrationTests extends IntegrationTestSupport {
     }
 
     private org.springframework.test.web.servlet.ResultActions create(String authority) throws Exception {
+        users.findById(actor).orElseGet(() -> users.save(new UserAccountJpaEntity(actor, actor + "@example.com",
+                "Kayit Danismani", "unused", true, java.util.Set.of(authority))));
         return mvc.perform(post("/api/students").with(auth(authority)).contentType(MediaType.APPLICATION_JSON).content(body()));
     }
     private org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor auth(String authority) {

@@ -24,7 +24,7 @@ public class AuthorizationAdministrationService {
     @Transactional(readOnly = true)
     public Page<ManagedUser> listUsers(String search, int page, int size) {
         return users.findByEmailContainingIgnoreCase(search.strip(), PageRequest.of(page, size, Sort.by("email").ascending()))
-                .map(entity -> { var user = entity.toDomain(); return new ManagedUser(user.id(), user.email(), user.enabled(), user.authorities()); });
+                .map(entity -> { var user = entity.toDomain(); return new ManagedUser(user.id(), user.email(), user.fullName(), user.enabled(), user.authorities()); });
     }
 
     @PreAuthorize("hasAuthority('user:permission:manage')")
@@ -38,8 +38,8 @@ public class AuthorizationAdministrationService {
         entity.replaceAuthorities(authorities);
         SECURITY_AUDIT.info("event=authorities_updated actorId={} targetUserId={} authorityCount={}", actorId, userId, authorities.size());
         var user = entity.toDomain();
-        return new ManagedUser(user.id(), user.email(), user.enabled(), user.authorities());
+        return new ManagedUser(user.id(), user.email(), user.fullName(), user.enabled(), user.authorities());
     }
 
-    public record ManagedUser(UUID id, String email, boolean enabled, Set<String> authorities) {}
+    public record ManagedUser(UUID id, String email, String fullName, boolean enabled, Set<String> authorities) {}
 }

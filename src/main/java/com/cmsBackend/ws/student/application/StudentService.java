@@ -8,9 +8,15 @@ import com.cmsBackend.ws.student.api.model.StudentEnrollmentResponse;
 import com.cmsBackend.ws.training.infrastructure.persistence.StudentJpaEntity;
 import com.cmsBackend.ws.training.infrastructure.persistence.ClassEnrollmentRepository;
 import com.cmsBackend.ws.training.infrastructure.persistence.StudentRepository;
+import com.cmsBackend.ws.user.infrastructure.persistence.SpringDataUserAccountRepository;
+import com.cmsBackend.ws.user.infrastructure.persistence.UserAccountJpaEntity;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,32 +28,44 @@ import org.springframework.transaction.annotation.Transactional;
 public class StudentService {
     private final StudentRepository students;
     private final ClassEnrollmentRepository enrollments;
+    private final SpringDataUserAccountRepository users;
     private final StudentSensitiveDataProtector sensitiveData;
     private final SecurityAuditService audit;
     private final Clock clock = Clock.systemUTC();
 
     public StudentService(StudentRepository students, ClassEnrollmentRepository enrollments,
+            SpringDataUserAccountRepository users,
             StudentSensitiveDataProtector sensitiveData, SecurityAuditService audit) {
-        this.students = students; this.enrollments = enrollments; this.sensitiveData = sensitiveData; this.audit = audit;
+        this.students = students; this.enrollments = enrollments; this.users = users;
+        this.sensitiveData = sensitiveData; this.audit = audit;
     }
 
     @PreAuthorize("hasAuthority('student:read')")
     @Transactional(readOnly = true)
     public PageResponse<StudentResponse> list(String search, StudentStatus status, int page, int size) {
         var pageable = PageRequest.of(page, size, Sort.by("fullName").ascending().and(Sort.by("id").ascending()));
-        return PageResponse.from(students.search(search == null ? "" : search.trim(), status, pageable)
-                .map(StudentResponse::from));
+        var result = students.search(search == null ? "" : search.trim(), status, pageable);
+        var userFullNames = userFullNames(result.getContent().stream().map(StudentJpaEntity::getCreatedByUserId).toList());
+        return PageResponse.from(result.map(student -> StudentResponse.from(student, userFullName(userFullNames, student.getCreatedByUserId()))));
     }
 
     @PreAuthorize("hasAuthority('student:read')")
     @Transactional(readOnly = true)
-    public StudentResponse detail(UUID id) { return StudentResponse.from(find(id)); }
+    public StudentResponse detail(UUID id) {
+        var student = find(id);
+        var userFullNames = userFullNames(java.util.Collections.singleton(student.getCreatedByUserId()));
+        return StudentResponse.from(student, userFullName(userFullNames, student.getCreatedByUserId()));
+    }
 
     @PreAuthorize("hasAuthority('student:read')")
     @Transactional(readOnly = true)
     public java.util.List<StudentEnrollmentResponse> enrollments(UUID id) {
         find(id);
-        return enrollments.findStudentEnrollments(id).stream().map(StudentEnrollmentResponse::from).toList();
+        var studentEnrollments = enrollments.findStudentEnrollments(id);
+        var userFullNames = userFullNames(studentEnrollments.stream()
+                .flatMap(enrollment -> enrollment.getPayments().stream())
+                .map(payment -> payment.getReceivedByUserId()).toList());
+        return studentEnrollments.stream().map(enrollment -> StudentEnrollmentResponse.from(enrollment, userFullNames)).toList();
     }
 
     @PreAuthorize("hasAuthority('student:create')")
@@ -67,9 +85,10 @@ public class StudentService {
                 request.kvkkConsent(), nullableTrim(request.inactiveReason()), request.expectedStartDate(),
                 nullableTrim(request.birthPlace()), request.birthDate(), nullableTrim(request.fatherName()),
                 nullableTrim(request.motherName()), request.gender(), nullableTrim(request.educationLevel()),
-                nullableTrim(request.schoolName()), nullableTrim(request.profession()), nullableTrim(request.address()));
+                nullableTrim(request.schoolName()), nullableTrim(request.profession()), nullableTrim(request.address()),
+                actorId);
         try {
-            StudentResponse response = StudentResponse.from(students.saveAndFlush(student));
+            StudentResponse response = StudentResponse.from(students.saveAndFlush(student), userFullName(userFullNames(java.util.List.of(actorId)), actorId));
             audit.studentChanged("create", actorId, id); return response;
         } catch (DataIntegrityViolationException exception) { throw new StudentConflictException(); }
     }
@@ -103,7 +122,8 @@ public class StudentService {
                     protectedIdentityNumber.lookupHash(), protectedIdentityNumber.keyVersion());
         }
         try {
-            StudentResponse response = StudentResponse.from(students.saveAndFlush(student));
+            StudentResponse response = StudentResponse.from(students.saveAndFlush(student),
+                    userFullName(userFullNames(java.util.Collections.singleton(student.getCreatedByUserId())), student.getCreatedByUserId()));
             audit.studentChanged("update", actorId, id); return response;
         } catch (DataIntegrityViolationException exception) { throw new StudentConflictException(); }
     }
@@ -141,6 +161,15 @@ public class StudentService {
     }
 
     private StudentJpaEntity find(UUID id) { return students.findByIdAndDeletedAtIsNull(id).orElseThrow(StudentNotFoundException::new); }
+    private Map<UUID, String> userFullNames(Collection<UUID> ids) {
+        var userIds = ids.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        if (userIds.isEmpty()) return Map.of();
+        return users.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserAccountJpaEntity::getId, UserAccountJpaEntity::getFullName));
+    }
+    private String userFullName(Map<UUID, String> userFullNames, UUID userId) {
+        return userId == null ? null : userFullNames.get(userId);
+    }
     private ProtectedStudentSensitiveData protectPhone(UUID id, String phone) {
         try { return sensitiveData.protectPhone(id, phone); }
         catch (IllegalArgumentException exception) { throw new StudentValidationException("Telefon numarasi gecersiz."); }

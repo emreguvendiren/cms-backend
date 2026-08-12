@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record StudentEnrollmentResponse(UUID classId, String classCode, String className, UUID courseId,
@@ -20,6 +21,10 @@ public record StudentEnrollmentResponse(UUID classId, String classCode, String c
         PaymentStatus paymentStatus, LocalDate expectedPaymentDate, String note,
         List<ClassDetailResponse.EnrollmentPaymentResponse> payments, long version) {
     public static StudentEnrollmentResponse from(ClassEnrollmentJpaEntity enrollment) {
+        return from(enrollment, Map.of());
+    }
+
+    public static StudentEnrollmentResponse from(ClassEnrollmentJpaEntity enrollment, Map<UUID, String> userFullNames) {
         var courseClass = enrollment.getCourseClass();
         var course = courseClass.getCourse();
         return new StudentEnrollmentResponse(courseClass.getId(), courseClass.getCode(), courseClass.getName(),
@@ -29,7 +34,7 @@ public record StudentEnrollmentResponse(UUID classId, String classCode, String c
                 enrollment.getRegistrationFee(), enrollment.getPaymentPlan(),
                 enrollment.getInstallmentCount(), enrollment.getFirstPaymentDate(), enrollment.getPaymentStatus(),
                 enrollment.getExpectedPaymentDate(), enrollment.getNote(),
-                enrollment.getPayments().stream().map(ClassDetailResponse.EnrollmentPaymentResponse::from).toList(),
+                enrollment.getPayments().stream().map(payment -> ClassDetailResponse.EnrollmentPaymentResponse.from(payment, userFullNames)).toList(),
                 enrollment.getVersion());
     }
 }
