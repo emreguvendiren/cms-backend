@@ -20,6 +20,7 @@ public class CourseClassCompletionScheduler {
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Europe/Istanbul")
     public void completeExpiredClasses() {
+    	LOGGER.info("LOG : Cron job has been started!");
         int completedCount = lifecycleService.completeExpiredClasses(LocalDate.now(SCHEDULE_ZONE));
         if (completedCount > 0) {
             LOGGER.info("event=course_class_auto_completion completedCount={}", completedCount);

@@ -313,6 +313,65 @@ class TrainingApiIntegrationTests extends IntegrationTestSupport {
                 .andExpect(status().isConflict());
     }
 
+    @Test void paymentCalendarReturnsCollectedInstallmentsAndPromissoryNotesForMonth() throws Exception {
+        var item = newClass(activeCourse());
+        var paidStudent = prospectiveStudent("paid-calendar@example.com");
+        var installmentStudent = prospectiveStudent("installment-calendar@example.com");
+        var promissoryStudent = prospectiveStudent("promissory-calendar@example.com");
+        var cancelledStudent = prospectiveStudent("cancelled-calendar@example.com");
+
+        var paidEnrollment = new ClassEnrollmentJpaEntity(UUID.randomUUID(), item, paidStudent,
+                EnrollmentStatus.ACTIVE, new BigDecimal("1500"), PaymentPlanType.CASH, null, null,
+                PaymentStatus.COMPLETED, null, null);
+        var paidPayment = new EnrollmentPaymentJpaEntity(UUID.randomUUID(), paidEnrollment, 1, 1,
+                new BigDecimal("1500"), LocalDate.parse("2026-07-30"), PaymentStatus.COMPLETED,
+                LocalDate.parse("2026-08-05"));
+        paidEnrollment.replacePayments(List.of(paidPayment));
+
+        var installmentEnrollment = new ClassEnrollmentJpaEntity(UUID.randomUUID(), item, installmentStudent,
+                EnrollmentStatus.ACTIVE, new BigDecimal("3000"), PaymentPlanType.INSTALLMENT, 2,
+                LocalDate.parse("2026-08-15"), PaymentStatus.PENDING, null, null);
+        var installmentPayment = new EnrollmentPaymentJpaEntity(UUID.randomUUID(), installmentEnrollment, 1, 2,
+                new BigDecimal("1500"), LocalDate.parse("2026-08-15"), PaymentStatus.PENDING, null);
+        installmentEnrollment.replacePayments(List.of(installmentPayment));
+
+        var promissoryEnrollment = new ClassEnrollmentJpaEntity(UUID.randomUUID(), item, promissoryStudent,
+                EnrollmentStatus.ACTIVE, new BigDecimal("4000"), PaymentPlanType.PROMISSORY_NOTE, 2,
+                LocalDate.parse("2026-08-20"), PaymentStatus.PENDING, null, null);
+        var promissoryPayment = new EnrollmentPaymentJpaEntity(UUID.randomUUID(), promissoryEnrollment, 1, 2,
+                new BigDecimal("2000"), LocalDate.parse("2026-08-20"), PaymentStatus.PENDING, null);
+        promissoryEnrollment.replacePayments(List.of(promissoryPayment));
+
+        var cancelledEnrollment = new ClassEnrollmentJpaEntity(UUID.randomUUID(), item, cancelledStudent,
+                EnrollmentStatus.CANCELLED, new BigDecimal("1000"), PaymentPlanType.INSTALLMENT, 2,
+                LocalDate.parse("2026-08-10"), PaymentStatus.PENDING, null, null);
+        cancelledEnrollment.replacePayments(List.of(new EnrollmentPaymentJpaEntity(UUID.randomUUID(),
+                cancelledEnrollment, 1, 2, new BigDecimal("500"), LocalDate.parse("2026-08-10"),
+                PaymentStatus.PENDING, null)));
+        enrollments.saveAllAndFlush(List.of(paidEnrollment, installmentEnrollment, promissoryEnrollment,
+                cancelledEnrollment));
+
+        mvc.perform(get("/api/payment-calendar").queryParam("month", "2026-08"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/payment-calendar").queryParam("month", "2026-08")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("class:read"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/payment-calendar").queryParam("month", "bad")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("class:enrollment:update"))))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/payment-calendar").queryParam("month", "2026-08")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("class:enrollment:update"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.month").value("2026-08"))
+                .andExpect(jsonPath("$.items.length()").value(3))
+                .andExpect(jsonPath("$.items[0].status").value("COMPLETED"))
+                .andExpect(jsonPath("$.items[0].paidAt").value("2026-08-05"))
+                .andExpect(jsonPath("$.items[1].paymentPlan").value("INSTALLMENT"))
+                .andExpect(jsonPath("$.items[1].dueDate").value("2026-08-15"))
+                .andExpect(jsonPath("$.items[2].paymentPlan").value("PROMISSORY_NOTE"))
+                .andExpect(jsonPath("$.items[2].dueDate").value("2026-08-20"));
+    }
+
     @Test void enrollmentUpdateRejectsMissingAuthenticationWrongAuthorityAndStaleVersion() throws Exception {
         var item = newClass(activeCourse());
         var student = prospectiveStudent("stale-enrollment@example.com");

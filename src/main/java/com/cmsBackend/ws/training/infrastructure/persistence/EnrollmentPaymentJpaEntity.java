@@ -11,7 +11,11 @@ import java.util.UUID;
 @Table(name = "enrollment_payments",
         uniqueConstraints = @UniqueConstraint(name = "uk_enrollment_payment_sequence",
                 columnNames = {"enrollment_id", "installment_number"}),
-        indexes = @Index(name = "idx_enrollment_payments_enrollment", columnList = "enrollment_id"))
+        indexes = {
+                @Index(name = "idx_enrollment_payments_enrollment", columnList = "enrollment_id"),
+                @Index(name = "idx_enrollment_payments_paid_at", columnList = "paid_at"),
+                @Index(name = "idx_enrollment_payments_due_status", columnList = "due_date,status")
+        })
 public class EnrollmentPaymentJpaEntity {
     @Id private UUID id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

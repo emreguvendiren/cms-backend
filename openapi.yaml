@@ -275,6 +275,27 @@ paths:
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
+  /api/payment-calendar:
+    get:
+      operationId: getPaymentCalendar
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\\d{4}-\\d{2}$'
+          example: '2026-08'
+      responses:
+        '200':
+          description: Monthly collected and expected enrollment payments
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaymentCalendar'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
   /api/students:
     get:
       operationId: listStudents
@@ -636,6 +657,39 @@ components:
         receivedByUserId: {type: [string, 'null'], format: uuid}
         receivedByFullName: {type: [string, 'null']}
         version: {type: integer, format: int64}
+    PaymentCalendar:
+      type: object
+      required: [month, items]
+      properties:
+        month:
+          type: string
+          pattern: '^\\d{4}-\\d{2}$'
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/PaymentCalendarItem'}
+    PaymentCalendarItem:
+      type: object
+      required: [paymentId, enrollmentId, classId, classCode, className, courseName, studentId, studentFullName, paymentPlan, installmentNumber, installmentTotal, amount, status]
+      properties:
+        paymentId: {type: string, format: uuid}
+        enrollmentId: {type: string, format: uuid}
+        classId: {type: string, format: uuid}
+        classCode: {type: string}
+        className: {type: string}
+        courseName: {type: string}
+        studentId: {type: string, format: uuid}
+        studentFullName: {type: string}
+        paymentPlan: {$ref: '#/components/schemas/PaymentPlanType'}
+        installmentNumber: {type: integer, minimum: 1, maximum: 24}
+        installmentTotal: {type: integer, minimum: 1, maximum: 24}
+        amount: {type: number, minimum: 0, multipleOf: 0.01}
+        dueDate: {type: [string, 'null'], format: date}
+        status: {$ref: '#/components/schemas/PaymentStatus'}
+        paidAt: {type: [string, 'null'], format: date}
+        paymentMethod:
+          anyOf:
+            - {$ref: '#/components/schemas/PaymentMethod'}
+            - type: 'null'
     ReceiveEnrollmentPaymentRequest:
       type: object
       additionalProperties: false
