@@ -32,6 +32,24 @@ paths:
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      operationId: createManagedUser
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateManagedUserRequest'}
+      responses:
+        '201':
+          description: User account created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ManagedUser'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
   /api/admin/users/{userId}/authorities:
     put:
       operationId: replaceUserAuthorities
@@ -296,24 +314,6 @@ paths:
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
-    post:
-      operationId: createManagedUser
-      security: [{bearerAuth: []}]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: '#/components/schemas/CreateManagedUserRequest'}
-      responses:
-        '201':
-          description: User account created
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/ManagedUser'}
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '403': {$ref: '#/components/responses/Forbidden'}
-        '409': {$ref: '#/components/responses/Conflict'}
   /api/students:
     get:
       operationId: listStudents
